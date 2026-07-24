@@ -101,7 +101,7 @@ function AdminPage() {
     username: "",
     password: "",
     name: "",
-    role: "Team Lead" as const,
+    role: "candidate" as AdminUser["role"],
     teamWing: "Web Development",
   });
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
@@ -3214,6 +3214,7 @@ function AdminPage() {
                       onChange={(e) => setNewOffice({ ...newOffice, category: e.target.value })}
                       className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
                     >
+                      <option value="Candidate">Candidate / Nominated Leader</option>
                       <option value="Office Bearer">Office Bearer</option>
                       <option value="Advisor">Student Advisor</option>
                       <option value="Faculty Advisor">Faculty Advisor</option>
@@ -4698,32 +4699,41 @@ function AdminPage() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                if (isPanelLocked) {
+                  setShowUnlockModal(true);
+                  return;
+                }
                 const cleanUsername = newUserForm.username.trim().toLowerCase();
                 const rawPassword = newUserForm.password.trim();
-                if (!cleanUsername || !rawPassword) return;
+                if (!cleanUsername || !rawPassword) {
+                  showToast("⚠️ Please enter both a username and password.");
+                  return;
+                }
 
                 if (store.adminUsers.some((u) => u.username.toLowerCase() === cleanUsername)) {
                   showToast(`⚠️ Username "@${cleanUsername}" already exists!`);
                   return;
                 }
 
-                let permissions = defaultTeamLeadPermissions;
+                let permissions = defaultCandidatePermissions;
                 let role: AdminUser["role"] = "candidate";
 
-                const r = String(newUserForm.role);
+                const r = String(newUserForm.role)
+                  .toLowerCase()
+                  .replace(/[\s_-]+/g, "");
                 if (r === "candidate") {
                   role = "candidate";
                   permissions = defaultCandidatePermissions;
-                } else if (r === "super_admin") {
+                } else if (r === "superadmin") {
                   role = "super_admin";
                   permissions = defaultSuperAdminPermissions;
-                } else if (r === "team_lead") {
+                } else if (r === "teamlead") {
                   role = "team_lead";
                   permissions = defaultTeamLeadPermissions;
-                } else if (r === "event_manager") {
+                } else if (r === "eventmanager") {
                   role = "event_manager";
                   permissions = { ...defaultCandidatePermissions, viewMessages: false };
-                } else if (r === "content_editor") {
+                } else if (r === "contenteditor") {
                   role = "content_editor";
                   permissions = {
                     ...defaultTeamLeadPermissions,
@@ -4742,7 +4752,7 @@ function AdminPage() {
                   status: "active",
                 });
 
-                showToast(`✅ Created user account "@${cleanUsername}" successfully!`);
+                showToast(`✅ Created candidate user account "@${cleanUsername}" successfully!`);
 
                 setNewUserForm({
                   username: "",
