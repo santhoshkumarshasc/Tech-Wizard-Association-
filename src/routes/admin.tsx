@@ -4344,26 +4344,67 @@ function AdminPage() {
               </h3>
 
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {store.events.flatMap((ev) =>
-                  (ev.photos || []).map((p, pIdx) => (
+                {store.events.flatMap((ev) => {
+                  const mediaItems: Array<{
+                    id: string;
+                    url: string;
+                    caption: string;
+                    type: string;
+                    onDelete: () => void;
+                  }> = [];
+
+                  if (ev.imageUrl) {
+                    mediaItems.push({
+                      id: `poster-${ev.id}`,
+                      url: ev.imageUrl,
+                      caption: `${ev.title} — Event Poster`,
+                      type: "Poster",
+                      onDelete: () => {
+                        if (confirm(`Delete official poster for "${ev.title}"?`)) {
+                          store.updateEvent(ev.id, { imageUrl: "" });
+                          showToast("Deleted event poster from gallery!");
+                        }
+                      },
+                    });
+                  }
+
+                  (ev.photos || []).forEach((p, pIdx) => {
+                    mediaItems.push({
+                      id: p.id || `photo-${pIdx}`,
+                      url: p.url,
+                      caption: p.caption || `${ev.title} photo`,
+                      type: "Gallery Photo",
+                      onDelete: () => {
+                        if (confirm(`Delete this photo from "${ev.title}" gallery?`)) {
+                          store.removeEventPhoto(ev.id, p.id || pIdx.toString());
+                          showToast("Deleted image from event gallery!");
+                        }
+                      },
+                    });
+                  });
+
+                  return mediaItems.map((item) => (
                     <div
-                      key={`${ev.id}-${p.id || pIdx}`}
+                      key={`${ev.id}-${item.id}`}
                       className="group relative rounded-2xl border border-border bg-card overflow-hidden shadow-xs hover:shadow-md transition-smooth space-y-2 p-3"
                     >
                       <div className="relative aspect-video rounded-xl overflow-hidden bg-muted">
                         <img
-                          src={p.url}
-                          alt={p.caption || ev.title}
+                          src={item.url}
+                          alt={item.caption}
                           className="h-full w-full object-cover group-hover:scale-105 transition-smooth"
                         />
                         <span className="absolute top-2 left-2 rounded-full bg-black/70 backdrop-blur-md px-2.5 py-0.5 text-[10px] font-semibold text-white">
                           {ev.title}
                         </span>
+                        <span className="absolute top-2 right-2 rounded-full bg-primary/80 backdrop-blur-md px-2 py-0.5 text-[9px] font-bold text-primary-foreground">
+                          {item.type}
+                        </span>
                       </div>
 
                       <div className="space-y-1">
                         <p className="text-xs font-medium text-foreground line-clamp-2">
-                          {p.caption || "No description"}
+                          {item.caption}
                         </p>
                       </div>
 
@@ -4371,7 +4412,7 @@ function AdminPage() {
                         <button
                           type="button"
                           onClick={() => {
-                            navigator.clipboard.writeText(p.url);
+                            navigator.clipboard.writeText(item.url);
                             showToast("📋 Image URL copied to clipboard!");
                           }}
                           className="text-[11px] font-medium text-primary hover:underline flex items-center gap-1"
@@ -4381,19 +4422,16 @@ function AdminPage() {
 
                         <button
                           type="button"
-                          onClick={() => {
-                            store.removeEventPhoto(ev.id, p.id || pIdx.toString());
-                            showToast("Deleted image from event gallery!");
-                          }}
-                          className="text-xs text-muted-foreground hover:text-rose-500 transition-smooth p-1"
+                          onClick={item.onDelete}
+                          className="text-xs font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-smooth px-2.5 py-1 rounded-lg flex items-center gap-1"
                           title="Delete image"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-3.5 w-3.5" /> Delete
                         </button>
                       </div>
                     </div>
-                  )),
-                )}
+                  ));
+                })}
               </div>
             </div>
           </div>

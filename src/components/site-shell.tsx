@@ -1,6 +1,6 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { Menu, X, Shield, Sparkles } from "lucide-react";
+import { Menu, X, Shield, Sparkles, ArrowUp } from "lucide-react";
 import { nav } from "@/lib/site-data";
 import { useSiteStore } from "@/lib/site-store";
 import { cn } from "@/lib/utils";
@@ -9,8 +9,27 @@ import { ThemeToggle } from "./theme-toggle";
 
 export function SiteShell() {
   const [open, setOpen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { site } = useSiteStore();
+
+  // Scroll to top smoothly on route navigation
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [pathname]);
+
+  // Monitor scroll offset to show back-to-top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   useEffect(() => {
     if (site.logoUrl && typeof document !== "undefined") {
@@ -197,6 +216,18 @@ export function SiteShell() {
           © {new Date().getFullYear()} {site.name} · All rights reserved
         </div>
       </footer>
+
+      {/* Floating Smooth Back To Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 rounded-full bg-primary p-3 text-primary-foreground shadow-glow hover:scale-110 active:scale-95 transition-smooth animate-in fade-in slide-in-from-bottom-4 duration-300"
+          aria-label="Scroll to top"
+          title="Scroll to top"
+        >
+          <ArrowUp className="h-5 w-5" />
+        </button>
+      )}
     </div>
   );
 }
