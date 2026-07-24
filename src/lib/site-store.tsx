@@ -748,6 +748,28 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
       (err) => console.warn("Firestore adminUsers listener error", err),
     );
 
+    // 9. Security Settings (secretToken & adminPin)
+    const unsubSec = onSnapshot(
+      doc(db, "settings", "security"),
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          if (data.secretToken && typeof data.secretToken === "string") {
+            setSecretTokenState(data.secretToken.trim());
+          }
+          if (data.adminPin && typeof data.adminPin === "string") {
+            setPinState(data.adminPin.trim());
+          }
+        } else {
+          setDoc(doc(db, "settings", "security"), {
+            secretToken: "twa2026",
+            adminPin: "admin2026",
+          }).catch((err) => handleFirestoreError(err, OperationType.WRITE, "settings/security"));
+        }
+      },
+      (err) => console.warn("Firestore security listener error", err),
+    );
+
     return () => {
       unsubConfig();
       unsubDept();
@@ -758,6 +780,7 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
       unsubTeams();
       unsubMsgs();
       unsubUsers();
+      unsubSec();
     };
   }, []);
 
@@ -1494,13 +1517,23 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const setAdminPin = (newPin: string) => {
-    setPinState(newPin);
-    saveAll({ adminPin: newPin });
+    const clean = newPin.trim();
+    if (!clean) return;
+    setPinState(clean);
+    saveAll({ adminPin: clean });
+    setDoc(doc(db, "settings", "security"), { adminPin: clean }, { merge: true }).catch((err) =>
+      handleFirestoreError(err, OperationType.WRITE, "settings/security"),
+    );
   };
 
   const setSecretToken = (newToken: string) => {
-    setSecretTokenState(newToken);
-    saveAll({ secretToken: newToken });
+    const clean = newToken.trim();
+    if (!clean) return;
+    setSecretTokenState(clean);
+    saveAll({ secretToken: clean });
+    setDoc(doc(db, "settings", "security"), { secretToken: clean }, { merge: true }).catch((err) =>
+      handleFirestoreError(err, OperationType.WRITE, "settings/security"),
+    );
   };
 
   const resetToDefaults = () => {
