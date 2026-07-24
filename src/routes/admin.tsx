@@ -38,7 +38,9 @@ import {
   Phone,
   Github,
   GitBranch,
+  Wand2,
 } from "lucide-react";
+import { ImageEditorModal } from "@/components/image-editor";
 import {
   useSiteStore,
   EventItem,
@@ -128,6 +130,21 @@ function AdminPage() {
   const [activePhotoEventId, setActivePhotoEventId] = useState<string | null>(null);
   const [photoInputUrl, setPhotoInputUrl] = useState("");
   const [photoCaptionInput, setPhotoCaptionInput] = useState("");
+
+  // Universal Image Editor State for Admin
+  const [showImageEditor, setShowImageEditor] = useState(false);
+  const [imageEditorSrc, setImageEditorSrc] = useState("");
+  const [imageEditorTitle, setImageEditorTitle] = useState("Photo Editor & Studio");
+  const [editorSaveCallback, setEditorSaveCallback] = useState<((dataUrl: string) => void) | null>(
+    null,
+  );
+
+  const openImageEditor = (src: string, title: string, onSave: (url: string) => void) => {
+    setImageEditorSrc(src || "");
+    setImageEditorTitle(title || "Photo Editor & Studio");
+    setEditorSaveCallback(() => onSave);
+    setShowImageEditor(true);
+  };
 
   // System Database Backup/Restore State
   const [systemSyncMessage, setSystemSyncMessage] = useState<string | null>(null);
@@ -2162,9 +2179,27 @@ function AdminPage() {
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
-                        Photo URL (Optional)
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-semibold text-muted-foreground uppercase">
+                          Photo URL (Optional)
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            openImageEditor(
+                              newFacultyMember.photoUrl,
+                              "Edit Faculty Member Photo",
+                              (editedUrl) => {
+                                setNewFacultyMember({ ...newFacultyMember, photoUrl: editedUrl });
+                                showToast("🎨 Edited faculty photo applied!");
+                              },
+                            );
+                          }}
+                          className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline"
+                        >
+                          <Wand2 className="h-3 w-3" /> Open Photo Editor
+                        </button>
+                      </div>
                       <input
                         type="text"
                         placeholder="https://..."
@@ -3409,9 +3444,27 @@ function AdminPage() {
 
               {/* Photo Upload */}
               <div className="pt-2 border-t border-border/60">
-                <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
-                  Profile Photo (Upload Device Image or Paste URL)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-semibold text-muted-foreground uppercase">
+                    Profile Photo (Upload Device Image or Paste URL)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      openImageEditor(
+                        newOffice.avatarUrl,
+                        "Edit Leadership Member Avatar",
+                        (editedUrl) => {
+                          setNewOffice({ ...newOffice, avatarUrl: editedUrl });
+                          showToast("🎨 Edited avatar applied!");
+                        },
+                      );
+                    }}
+                    className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline"
+                  >
+                    <Wand2 className="h-3 w-3" /> Open Photo Studio
+                  </button>
+                </div>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 rounded-xl border border-border bg-muted/20 p-3">
                   {newOffice.avatarUrl ? (
                     <img
@@ -4314,11 +4367,29 @@ function AdminPage() {
                     <p className="text-muted-foreground line-clamp-2">
                       {photoCaptionInput || "No description specified yet"}
                     </p>
-                    <span className="inline-block text-[10px] font-mono bg-muted px-2 py-0.5 rounded">
-                      {photoInputUrl.startsWith("data:")
-                        ? "Device Upload (Base64)"
-                        : "Web URL Link"}
-                    </span>
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="inline-block text-[10px] font-mono bg-muted px-2 py-0.5 rounded">
+                        {photoInputUrl.startsWith("data:")
+                          ? "Device Upload (Base64)"
+                          : "Web URL Link"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          openImageEditor(
+                            photoInputUrl,
+                            "Edit Event Gallery Photo",
+                            (editedUrl) => {
+                              setPhotoInputUrl(editedUrl);
+                              showToast("🎨 Edited photo applied!");
+                            },
+                          );
+                        }}
+                        className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline"
+                      >
+                        <Wand2 className="h-3 w-3" /> Crop, Filter &amp; Watermark Photo
+                      </button>
+                    </div>
                   </div>
                   <button
                     type="button"
@@ -5423,6 +5494,20 @@ function AdminPage() {
           </div>
         </div>
       )}
+
+      {/* Universal Image Editor Modal for Admin */}
+      <ImageEditorModal
+        isOpen={showImageEditor}
+        onClose={() => setShowImageEditor(false)}
+        initialImage={imageEditorSrc}
+        title={imageEditorTitle}
+        onSave={(dataUrl) => {
+          if (editorSaveCallback) {
+            editorSaveCallback(dataUrl);
+          }
+          setShowImageEditor(false);
+        }}
+      />
     </div>
   );
 }

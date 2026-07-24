@@ -10,8 +10,10 @@ import {
   Calendar,
   Tag,
   Shield,
+  Wand2,
 } from "lucide-react";
 import { useSiteStore } from "@/lib/site-store";
+import { ImageEditorModal } from "@/components/image-editor";
 
 export const Route = createFileRoute("/gallery")({
   head: () => ({
@@ -88,6 +90,8 @@ function GalleryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string>("All");
   const [activeImage, setActiveImage] = useState<GalleryImageItem | null>(null);
+  const [showImageEditor, setShowImageEditor] = useState(false);
+  const [editorInitialImg, setEditorInitialImg] = useState<string>("");
 
   // Consolidate all uploaded event images & gallery photos across all events
   const allImages = useMemo(() => {
@@ -173,6 +177,18 @@ function GalleryPage() {
                 Browse official event posters and photo memories from our association events and
                 workshops.
               </p>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                onClick={() => {
+                  setEditorInitialImg("");
+                  setShowImageEditor(true);
+                }}
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-xs font-bold text-primary-foreground shadow-md hover:opacity-90 transition-smooth"
+              >
+                <Wand2 className="h-4 w-4" /> Open Photo Studio &amp; Editor
+              </button>
             </div>
           </div>
         </div>
@@ -349,19 +365,31 @@ function GalleryPage() {
               </div>
 
               <div className="space-y-2 pt-3 border-t border-border">
+                <button
+                  onClick={() => {
+                    if (activeImage) {
+                      setEditorInitialImg(activeImage.url);
+                      setShowImageEditor(true);
+                    }
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-sm hover:opacity-90 transition-smooth"
+                >
+                  <Wand2 className="h-4 w-4" /> Edit &amp; Filter Photo
+                </button>
+
                 <a
                   href={activeImage.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-sm hover:opacity-90 transition-smooth"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-xs font-semibold text-foreground hover:bg-accent transition-smooth"
                 >
-                  <Maximize2 className="h-4 w-4" /> Open Full Resolution Image
+                  <Maximize2 className="h-4 w-4" /> Open Full Resolution
                 </a>
 
                 <Link
                   to="/events"
                   onClick={() => setActiveImage(null)}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2 text-xs font-semibold text-foreground hover:bg-accent transition-smooth"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-smooth"
                 >
                   <Calendar className="h-4 w-4" /> View Associated Event
                 </Link>
@@ -370,6 +398,17 @@ function GalleryPage() {
           </div>
         </div>
       )}
+
+      {/* Image Editor Modal for Users */}
+      <ImageEditorModal
+        isOpen={showImageEditor}
+        onClose={() => setShowImageEditor(false)}
+        initialImage={editorInitialImg}
+        title="TWA Photo Editor &amp; Media Studio"
+        onSave={() => {
+          setShowImageEditor(false);
+        }}
+      />
     </div>
   );
 }
