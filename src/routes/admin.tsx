@@ -45,6 +45,8 @@ import {
   OfficeMember,
   ContactMessage,
   AnnouncementInfo,
+  AdminUser,
+  UserPermissions,
 } from "@/lib/site-store";
 
 export const Route = createFileRoute("/admin")({
@@ -96,6 +98,18 @@ function AdminPage() {
   }, [store.stats]);
 
   // User Accounts & Permissions State
+  const defaultNewUserPermissions: UserPermissions = {
+    manageSiteInfo: true,
+    manageDepartment: true,
+    manageAnnouncement: true,
+    manageEvents: true,
+    uploadEventPhotos: true,
+    manageMembers: true,
+    manageTeams: true,
+    manageUsers: false,
+    viewMessages: true,
+  };
+
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUserForm, setNewUserForm] = useState({
     username: "",
@@ -103,6 +117,7 @@ function AdminPage() {
     name: "",
     role: "candidate" as AdminUser["role"],
     teamWing: "Web Development",
+    permissions: { ...defaultNewUserPermissions },
   });
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editUserForm, setEditUserForm] = useState<Partial<AdminUser>>({});
@@ -4716,44 +4731,22 @@ function AdminPage() {
                   return;
                 }
 
-                let permissions = defaultCandidatePermissions;
-                let role: AdminUser["role"] = "candidate";
-
-                const r = String(newUserForm.role)
-                  .toLowerCase()
-                  .replace(/[\s_-]+/g, "");
-                if (r === "candidate") {
-                  role = "candidate";
-                  permissions = defaultCandidatePermissions;
-                } else if (r === "superadmin") {
-                  role = "super_admin";
-                  permissions = defaultSuperAdminPermissions;
-                } else if (r === "teamlead") {
-                  role = "team_lead";
-                  permissions = defaultTeamLeadPermissions;
-                } else if (r === "eventmanager") {
-                  role = "event_manager";
-                  permissions = { ...defaultCandidatePermissions, viewMessages: false };
-                } else if (r === "contenteditor") {
-                  role = "content_editor";
-                  permissions = {
-                    ...defaultTeamLeadPermissions,
-                    manageSiteInfo: true,
-                    manageAnnouncement: true,
-                  };
-                }
+                const perms = newUserForm.permissions;
+                const computedRole: AdminUser["role"] = perms.manageUsers
+                  ? "super_admin"
+                  : "candidate";
 
                 store.addAdminUser({
                   username: cleanUsername,
                   password: rawPassword,
                   fullName: newUserForm.name || cleanUsername,
-                  role: role,
+                  role: computedRole,
                   teamSlug: newUserForm.teamWing.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-                  permissions: permissions,
+                  permissions: perms,
                   status: "active",
                 });
 
-                showToast(`✅ Created candidate user account "@${cleanUsername}" successfully!`);
+                showToast(`✅ Created user account "@${cleanUsername}" with custom permissions!`);
 
                 setNewUserForm({
                   username: "",
@@ -4761,6 +4754,7 @@ function AdminPage() {
                   name: "",
                   role: "candidate",
                   teamWing: "Web Development",
+                  permissions: { ...defaultNewUserPermissions },
                 });
                 setShowAddUserModal(false);
               }}
@@ -4768,7 +4762,7 @@ function AdminPage() {
             >
               <div className="flex items-center justify-between pb-3 border-b border-border">
                 <h3 className="font-semibold text-base flex items-center gap-2 text-primary">
-                  <Users className="h-4 w-4" /> Create Custom Candidate / Admin Account
+                  <Users className="h-4 w-4" /> Create New User Account &amp; Assign Permissions
                 </h3>
                 <button
                   type="button"
@@ -4782,7 +4776,7 @@ function AdminPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-                    Username (Login)
+                    Username (Login) *
                   </label>
                   <input
                     type="text"
@@ -4796,12 +4790,12 @@ function AdminPage() {
 
                 <div>
                   <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-                    Password
+                    Password *
                   </label>
                   <input
                     type="password"
                     required
-                    placeholder="Enter login password"
+                    placeholder="Enter account password"
                     value={newUserForm.password}
                     onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
                     className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
@@ -4810,11 +4804,11 @@ function AdminPage() {
 
                 <div>
                   <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-                    Full Name
+                    Full Name / Display Name
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Candidate Applicant"
+                    placeholder="e.g. Candidate Member"
                     value={newUserForm.name}
                     onChange={(e) => setNewUserForm({ ...newUserForm, name: e.target.value })}
                     className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
@@ -4822,30 +4816,6 @@ function AdminPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-                    Account Role
-                  </label>
-                  <select
-                    value={newUserForm.role}
-                    onChange={(e) =>
-                      setNewUserForm({
-                        ...newUserForm,
-                        role: e.target.value as AdminUser["role"],
-                      })
-                    }
-                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                  >
-                    <option value="candidate">Candidate (Custom Permission)</option>
-                    <option value="super_admin">Super Admin (Full Control)</option>
-                    <option value="team_lead">Team Lead (Team &amp; Event Access)</option>
-                    <option value="event_manager">Event Manager (Events &amp; Photos)</option>
-                    <option value="content_editor">
-                      Content Editor (Branding &amp; Announcements)
-                    </option>
-                  </select>
-                </div>
-
-                <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
                     Associated Department Wing
                   </label>
@@ -4856,11 +4826,111 @@ function AdminPage() {
                   >
                     <option>Executive</option>
                     <option>Web Development</option>
-                    <option>Cyber Security & CTF</option>
-                    <option>AI & Machine Learning</option>
+                    <option>Cyber Security &amp; CTF</option>
+                    <option>AI &amp; Machine Learning</option>
                     <option>UI/UX Design</option>
                     <option>Competitive Programming</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Checkboxes Only for Feature Permissions */}
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold uppercase text-primary tracking-wider flex items-center gap-1.5">
+                    <ShieldCheck className="h-4 w-4" /> Feature Access Permissions (Checkboxes Only)
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setNewUserForm({
+                          ...newUserForm,
+                          permissions: {
+                            manageSiteInfo: true,
+                            manageDepartment: true,
+                            manageAnnouncement: true,
+                            manageEvents: true,
+                            uploadEventPhotos: true,
+                            manageMembers: true,
+                            manageTeams: true,
+                            manageUsers: true,
+                            viewMessages: true,
+                          },
+                        })
+                      }
+                      className="text-[10px] font-semibold text-primary underline hover:text-primary/80"
+                    >
+                      Check All
+                    </button>
+                    <span className="text-muted-foreground text-[10px]">|</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setNewUserForm({
+                          ...newUserForm,
+                          permissions: {
+                            manageSiteInfo: false,
+                            manageDepartment: false,
+                            manageAnnouncement: false,
+                            manageEvents: false,
+                            uploadEventPhotos: false,
+                            manageMembers: false,
+                            manageTeams: false,
+                            manageUsers: false,
+                            viewMessages: false,
+                          },
+                        })
+                      }
+                      className="text-[10px] font-semibold text-muted-foreground underline hover:text-foreground"
+                    >
+                      Uncheck All
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs pt-1">
+                  {[
+                    { key: "manageSiteInfo", label: "Branding & Logo" },
+                    { key: "manageDepartment", label: "Department Info" },
+                    { key: "manageAnnouncement", label: "Announcements" },
+                    { key: "manageEvents", label: "Manage Events" },
+                    { key: "uploadEventPhotos", label: "Upload Photos" },
+                    { key: "manageMembers", label: "Leadership Team" },
+                    { key: "manageTeams", label: "Team Members" },
+                    { key: "manageUsers", label: "User Accounts" },
+                    { key: "viewMessages", label: "View Messages" },
+                  ].map((perm) => {
+                    const isChecked = Boolean(
+                      newUserForm.permissions[perm.key as keyof UserPermissions],
+                    );
+                    return (
+                      <label
+                        key={perm.key}
+                        className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer select-none text-xs font-medium transition-smooth ${
+                          isChecked
+                            ? "bg-card border-primary/40 text-foreground shadow-xs"
+                            : "bg-muted/40 border-border/60 text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) =>
+                            setNewUserForm({
+                              ...newUserForm,
+                              permissions: {
+                                ...newUserForm.permissions,
+                                [perm.key]: e.target.checked,
+                              },
+                            })
+                          }
+                          className="rounded border-border text-primary focus:ring-primary/20 accent-primary h-4 w-4"
+                        />
+                        {perm.label}
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -4874,7 +4944,7 @@ function AdminPage() {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground shadow"
+                  className="rounded-xl bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground shadow hover:opacity-90 transition-smooth"
                 >
                   Create User Account
                 </button>
