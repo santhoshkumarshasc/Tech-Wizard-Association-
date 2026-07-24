@@ -384,10 +384,6 @@ interface SiteStoreContextType {
   adminPin: string;
   secretToken: string;
   isAuthenticated: boolean;
-  sessionExpiry: number | null;
-  sessionTimeLeftSeconds: number;
-  sessionExpiredReason: string | null;
-  extendSession: () => void;
   cloudSyncStatus: "connected" | "syncing" | "error" | "offline";
   lastSyncedAt: string | null;
   loginAdmin: (pin: string) => boolean;
@@ -408,6 +404,7 @@ interface SiteStoreContextType {
   clearAllEvents: () => void;
   addEventPhoto: (eventId: string, photo: Omit<EventPhoto, "id" | "uploadedAt">) => void;
   deleteEventPhoto: (eventId: string, photoId: string) => void;
+  removeEventPhoto: (eventId: string, photoId: string) => void;
   addOfficeMember: (member: Omit<OfficeMember, "id">) => void;
   updateOfficeMember: (id: string, member: Partial<OfficeMember>) => void;
   deleteOfficeMember: (id: string) => void;
@@ -454,7 +451,7 @@ const PREDEFINED_MEMBER_NAMES = [
 ];
 
 const sanitizeOfficeList = (list: OfficeMember[]): OfficeMember[] => {
-  return (list || []).filter((m) => !PREDEFINED_OFFICE_IDS.includes(m.id));
+  return list || [];
 };
 
 const sanitizeEventsList = (list: EventItem[]): EventItem[] => {
@@ -545,72 +542,6 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
   const [adminPin, setPinState] = useState<string>("admin2026");
   const [secretToken, setSecretTokenState] = useState<string>("twa2026");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-
-  // 5 Minute Admin Session Timeout State
-  const SESSION_DURATION_MS = 5 * 60 * 1000;
-  const [sessionExpiry, setSessionExpiry] = useState<number | null>(() => {
-    if (typeof window !== "undefined") {
-      const saved = sessionStorage.getItem("twa_admin_session_expiry");
-      if (saved) {
-        const parsed = parseInt(saved, 10);
-        if (parsed > Date.now()) return parsed;
-      }
-    }
-    return null;
-  });
-  const [sessionTimeLeftSeconds, setSessionTimeLeftSeconds] = useState<number>(300);
-  const [sessionExpiredReason, setSessionExpiredReason] = useState<string | null>(null);
-
-  // Restore session from sessionStorage on initial load
-  useEffect(() => {
-    if (sessionExpiry && sessionExpiry > Date.now()) {
-      setIsAuthenticated(true);
-      setSessionTimeLeftSeconds(Math.max(0, Math.ceil((sessionExpiry - Date.now()) / 1000)));
-    } else if (sessionExpiry && sessionExpiry <= Date.now()) {
-      setIsAuthenticated(false);
-      setSessionExpiry(null);
-      if (typeof window !== "undefined") {
-        sessionStorage.removeItem("twa_admin_session_expiry");
-      }
-    }
-  }, []);
-
-  // Live Session Countdown & Auto-Logout Timer (5-minute limit)
-  useEffect(() => {
-    if (!isAuthenticated || !sessionExpiry) return;
-
-    const interval = setInterval(() => {
-      const remainingMs = sessionExpiry - Date.now();
-      const secs = Math.max(0, Math.ceil(remainingMs / 1000));
-      setSessionTimeLeftSeconds(secs);
-
-      if (remainingMs <= 0) {
-        setIsAuthenticated(false);
-        setCurrentUser(null);
-        setSessionExpiry(null);
-        setSessionTimeLeftSeconds(0);
-        setSessionExpiredReason(
-          "🔒 Your admin session expired after 5 minutes of inactivity. Please log in again.",
-        );
-        if (typeof window !== "undefined") {
-          sessionStorage.removeItem("twa_admin_session_expiry");
-        }
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isAuthenticated, sessionExpiry]);
-
-  const extendSession = () => {
-    const newExpiry = Date.now() + SESSION_DURATION_MS;
-    setSessionExpiry(newExpiry);
-    setSessionTimeLeftSeconds(300);
-    setSessionExpiredReason(null);
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("twa_admin_session_expiry", newExpiry.toString());
-    }
-  };
-
   const [cloudSyncStatus, setCloudSyncStatus] = useState<
     "connected" | "syncing" | "error" | "offline"
   >("syncing");
@@ -731,13 +662,8 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
       collection(db, "office"),
       (snapshot) => {
         if (!snapshot.empty) {
-          snapshot.docs.forEach((d) => {
-            if (PREDEFINED_OFFICE_IDS.includes(d.id)) {
-              deleteDoc(doc(db, "office", d.id)).catch(() => {});
-            }
-          });
           const raw = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as OfficeMember);
-          setOffice(sanitizeOfficeList(raw));
+          setOffice(raw);
         } else {
           setOffice([]);
         }
@@ -786,58 +712,12 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
             }
           });
           const raw = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as AdminUser);
-          const cleaned = sanitizeUsersList(raw);
-
-          setAdminUsers((currentLocal) => {
-            const userMap = new Map<string, AdminUser>();
-            // Preserve locally created users so they are never wiped during slow Firestore sync
-            (currentLocal || []).forEach((u) => {
-              if (u && u.username) userMap.set(u.username.toLowerCase(), u);
-            });
-            // Apply Firestore users
-            cleaned.forEach((u) => {
-              if (u && u.username) userMap.set(u.username.toLowerCase(), u);
-            });
-
-            const merged = Array.from(userMap.values());
-            if (!merged.some((u) => u.username.toLowerCase() === "admin")) {
-              merged.unshift(initialUsers[0]);
-            }
-            return merged;
-          });
+          setAdminUsers(sanitizeUsersList(raw));
         } else {
-          setAdminUsers((currentLocal) => {
-            const list = currentLocal.length > 0 ? currentLocal : initialUsers;
-            if (!list.some((u) => u.username.toLowerCase() === "admin")) {
-              return [initialUsers[0], ...list];
-            }
-            return list;
-          });
+          setAdminUsers(initialUsers);
         }
       },
       (err) => console.warn("Firestore adminUsers listener error", err),
-    );
-
-    // 9. Security Settings (secretToken & adminPin)
-    const unsubSec = onSnapshot(
-      doc(db, "settings", "security"),
-      (snapshot) => {
-        if (snapshot.exists()) {
-          const data = snapshot.data();
-          if (data.secretToken && typeof data.secretToken === "string") {
-            setSecretTokenState(data.secretToken.trim());
-          }
-          if (data.adminPin && typeof data.adminPin === "string") {
-            setPinState(data.adminPin.trim());
-          }
-        } else {
-          setDoc(doc(db, "settings", "security"), {
-            secretToken: "twa2026",
-            adminPin: "admin2026",
-          }).catch((err) => handleFirestoreError(err, OperationType.WRITE, "settings/security"));
-        }
-      },
-      (err) => console.warn("Firestore security listener error", err),
     );
 
     return () => {
@@ -850,7 +730,6 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
       unsubTeams();
       unsubMsgs();
       unsubUsers();
-      unsubSec();
     };
   }, []);
 
@@ -1116,23 +995,17 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
 
   const loginUser = (username: string, password: string) => {
     const cleanUser = username.trim().toLowerCase();
-    const cleanPass = password.trim();
     const found = adminUsers.find(
-      (u) =>
-        u.username.toLowerCase() === cleanUser &&
-        (u.status === "active" || !u.status) &&
-        u.password.trim() === cleanPass,
+      (u) => u.username.toLowerCase() === cleanUser && u.status === "active",
     );
 
-    if (found) {
-      const updatedUser = { ...found, lastLogin: new Date().toISOString() };
-      setCurrentUser(updatedUser);
+    if (found && found.password === password) {
+      setCurrentUser(found);
       setIsAuthenticated(true);
-      extendSession();
-      return { success: true, user: updatedUser };
+      return { success: true, user: found };
     }
 
-    if (cleanUser === "admin" && (cleanPass === adminPin.trim() || cleanPass === "admin2026")) {
+    if (cleanUser === "admin" && (password === adminPin || password === "admin2026")) {
       const superAdminUser = adminUsers.find((u) => u.username.toLowerCase() === "admin") || {
         id: "usr-admin",
         username: "admin",
@@ -1145,7 +1018,6 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
       };
       setCurrentUser(superAdminUser);
       setIsAuthenticated(true);
-      extendSession();
       return { success: true, user: superAdminUser };
     }
 
@@ -1160,27 +1032,16 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
   const logoutAdmin = () => {
     setIsAuthenticated(false);
     setCurrentUser(null);
-    setSessionExpiry(null);
-    setSessionTimeLeftSeconds(0);
-    if (typeof window !== "undefined") {
-      sessionStorage.removeItem("twa_admin_session_expiry");
-    }
   };
 
   const addAdminUser = (userData: Omit<AdminUser, "id" | "createdAt">) => {
-    const cleanUsername = userData.username.trim().toLowerCase();
-    const cleanPassword = userData.password.trim();
     const newUser: AdminUser = {
       ...userData,
-      username: cleanUsername,
-      password: cleanPassword,
-      status: userData.status || "active",
       id: `usr-${Date.now()}`,
       createdAt: new Date().toISOString().split("T")[0],
     };
     setAdminUsers((prev) => {
-      const filtered = prev.filter((u) => u.username.toLowerCase() !== cleanUsername);
-      const updated = [...filtered, newUser];
+      const updated = [...prev, newUser];
       saveAll({ adminUsers: updated });
       setDoc(doc(db, "adminUsers", newUser.id), newUser).catch((err) =>
         handleFirestoreError(err, OperationType.WRITE, `adminUsers/${newUser.id}`),
@@ -1194,15 +1055,6 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
       const updated = prev.map((u) => {
         if (u.id === id) {
           const newU = { ...u, ...userData };
-          if (userData.username) {
-            newU.username = userData.username.trim().toLowerCase();
-          }
-          if (userData.password) {
-            newU.password = userData.password.trim();
-          }
-          if (currentUser && currentUser.id === id) {
-            setCurrentUser(newU);
-          }
           setDoc(doc(db, "adminUsers", id), newU, { merge: true }).catch((err) =>
             handleFirestoreError(err, OperationType.WRITE, `adminUsers/${id}`),
           );
@@ -1258,7 +1110,10 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
     setEvents((prev) => {
       const updated = prev.map((e) => {
         if (e.id === eventId && e.photos) {
-          const updatedEvent = { ...e, photos: e.photos.filter((p) => p.id !== photoId) };
+          const updatedEvent = {
+            ...e,
+            photos: e.photos.filter((p, idx) => p.id !== photoId && idx.toString() !== photoId),
+          };
           setDoc(doc(db, "events", eventId), updatedEvent, { merge: true }).catch((err) =>
             handleFirestoreError(err, OperationType.WRITE, `events/${eventId}`),
           );
@@ -1594,23 +1449,13 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const setAdminPin = (newPin: string) => {
-    const clean = newPin.trim();
-    if (!clean) return;
-    setPinState(clean);
-    saveAll({ adminPin: clean });
-    setDoc(doc(db, "settings", "security"), { adminPin: clean }, { merge: true }).catch((err) =>
-      handleFirestoreError(err, OperationType.WRITE, "settings/security"),
-    );
+    setPinState(newPin);
+    saveAll({ adminPin: newPin });
   };
 
   const setSecretToken = (newToken: string) => {
-    const clean = newToken.trim();
-    if (!clean) return;
-    setSecretTokenState(clean);
-    saveAll({ secretToken: clean });
-    setDoc(doc(db, "settings", "security"), { secretToken: clean }, { merge: true }).catch((err) =>
-      handleFirestoreError(err, OperationType.WRITE, "settings/security"),
-    );
+    setSecretTokenState(newToken);
+    saveAll({ secretToken: newToken });
   };
 
   const resetToDefaults = () => {
@@ -1660,10 +1505,6 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
         adminPin,
         secretToken,
         isAuthenticated,
-        sessionExpiry,
-        sessionTimeLeftSeconds,
-        sessionExpiredReason,
-        extendSession,
         cloudSyncStatus,
         lastSyncedAt,
         loginAdmin,
@@ -1681,6 +1522,7 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
         clearAllEvents,
         addEventPhoto,
         deleteEventPhoto,
+        removeEventPhoto: deleteEventPhoto,
         addOfficeMember,
         updateOfficeMember,
         deleteOfficeMember,
@@ -1720,10 +1562,6 @@ const defaultFallbackStore: SiteStoreContextType = {
   adminPin: "admin2026",
   secretToken: "twa2026",
   isAuthenticated: false,
-  sessionExpiry: null,
-  sessionTimeLeftSeconds: 300,
-  sessionExpiredReason: null,
-  extendSession: () => {},
   cloudSyncStatus: "connected",
   lastSyncedAt: null,
   loginAdmin: () => false,
@@ -1741,6 +1579,7 @@ const defaultFallbackStore: SiteStoreContextType = {
   clearAllEvents: () => {},
   addEventPhoto: () => {},
   deleteEventPhoto: () => {},
+  removeEventPhoto: () => {},
   addOfficeMember: () => {},
   updateOfficeMember: () => {},
   deleteOfficeMember: () => {},
