@@ -597,6 +597,65 @@ function AdminPage() {
               Log In to Portal
             </button>
           </form>
+
+          {/* Quick Login Accounts Selector */}
+          {store.adminUsers && store.adminUsers.length > 0 && (
+            <div className="mt-6 border-t border-border/80 pt-4">
+              <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground mb-2">
+                <span>Active User Accounts</span>
+                <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-mono">
+                  {store.adminUsers.length} User{store.adminUsers.length > 1 ? "s" : ""}
+                </span>
+              </div>
+
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                {store.adminUsers.map((u) => {
+                  const roleLabel =
+                    u.role === "candidate"
+                      ? "Candidate"
+                      : u.role === "super_admin"
+                        ? "Super Admin"
+                        : u.role === "team_lead"
+                          ? "Team Lead"
+                          : "User";
+                  return (
+                    <button
+                      key={u.id}
+                      type="button"
+                      onClick={() => {
+                        const passToUse = u.password || store.adminPin;
+                        setUsernameInput(u.username);
+                        setPinInput(passToUse);
+                        setPinError(false);
+                        const res = store.loginUser(u.username, passToUse);
+                        if (res.success) {
+                          showToast(`Logged in as ${u.fullName || u.username} (${roleLabel})!`);
+                        }
+                      }}
+                      className="w-full text-left rounded-xl border border-border/60 bg-muted/30 hover:bg-primary/5 hover:border-primary/40 p-2.5 text-xs transition-smooth flex items-center justify-between group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-xs">
+                          {(u.fullName || u.username).charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                            {u.fullName || u.username}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground font-mono">
+                            @{u.username}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold rounded-full px-2 py-0.5 bg-background border border-border text-muted-foreground group-hover:border-primary/30 group-hover:text-primary">
+                        {roleLabel} →
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );

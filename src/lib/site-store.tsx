@@ -716,9 +716,33 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
             }
           });
           const raw = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as AdminUser);
-          setAdminUsers(sanitizeUsersList(raw));
+          const cleaned = sanitizeUsersList(raw);
+
+          setAdminUsers((currentLocal) => {
+            const userMap = new Map<string, AdminUser>();
+            // Preserve locally created users so they are never wiped during slow Firestore sync
+            (currentLocal || []).forEach((u) => {
+              if (u && u.username) userMap.set(u.username.toLowerCase(), u);
+            });
+            // Apply Firestore users
+            cleaned.forEach((u) => {
+              if (u && u.username) userMap.set(u.username.toLowerCase(), u);
+            });
+
+            const merged = Array.from(userMap.values());
+            if (!merged.some((u) => u.username.toLowerCase() === "admin")) {
+              merged.unshift(initialUsers[0]);
+            }
+            return merged;
+          });
         } else {
-          setAdminUsers(initialUsers);
+          setAdminUsers((currentLocal) => {
+            const list = currentLocal.length > 0 ? currentLocal : initialUsers;
+            if (!list.some((u) => u.username.toLowerCase() === "admin")) {
+              return [initialUsers[0], ...list];
+            }
+            return list;
+          });
         }
       },
       (err) => console.warn("Firestore adminUsers listener error", err),
@@ -1044,13 +1068,19 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addAdminUser = (userData: Omit<AdminUser, "id" | "createdAt">) => {
+    const cleanUsername = userData.username.trim().toLowerCase();
+    const cleanPassword = userData.password.trim();
     const newUser: AdminUser = {
       ...userData,
+      username: cleanUsername,
+      password: cleanPassword,
+      status: userData.status || "active",
       id: `usr-${Date.now()}`,
       createdAt: new Date().toISOString().split("T")[0],
     };
     setAdminUsers((prev) => {
-      const updated = [...prev, newUser];
+      const filtered = prev.filter((u) => u.username.toLowerCase() !== cleanUsername);
+      const updated = [...filtered, newUser];
       saveAll({ adminUsers: updated });
       setDoc(doc(db, "adminUsers", newUser.id), newUser).catch((err) =>
         handleFirestoreError(err, OperationType.WRITE, `adminUsers/${newUser.id}`),
