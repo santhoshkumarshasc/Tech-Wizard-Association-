@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <!-- Definitions for text paths -->
+  <defs>
+    <!-- Path for top text: SYED HAMEEDHA ARTS AND SCIENCE COLLEGE -->
+    <path id="topTextPath" d="M 40,250 A 210,210 0 1,1 460,250" fill="none" />
+    <!-- Path for bottom text: DEPARTMENT OF COMPUTER APPLICATIONS -->
+    <path id="bottomTextPath" d="M 460,250 A 210,210 0 0,1 40,250" fill="none" />
+    <!-- Blue gradient for TW logo -->
+    <linearGradient id="twBlueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background & Outer Rings -->
+  <circle cx="250" cy="250" r="240" fill="#ffffff" />
+  <circle cx="250" cy="250" r="236" fill="none" stroke="#1e3a8a" stroke-width="6" />
+  <circle cx="250" cy="250" r="172" fill="none" stroke="#1e3a8a" stroke-width="3" />
+
+  <!-- Stars on the left and right -->
+  <!-- Left Star -->
+  <g transform="translate(80, 250) scale(1.2)">
+    <polygon points="0,-12 3.5,-3.5 12,-3.5 5,-1.5 8,7 0,2 -8,7 -5,-1.5 -12,-3.5 -3.5,-3.5" fill="#2563eb" />
+  </g>
+  <!-- Right Star -->
+  <g transform="translate(420, 250) scale(1.2)">
+    <polygon points="0,-12 3.5,-3.5 12,-3.5 5,-1.5 8,7 0,2 -8,7 -5,-1.5 -12,-3.5 -3.5,-3.5" fill="#2563eb" />
+  </g>
+
+  <!-- Curved Text: Top Arc -->
+  <text font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="21.5" fill="#1e3a8a" letter-spacing="2.5">
+    <textPath href="#topTextPath" startOffset="50%" text-anchor="middle">
+      SYED HAMEEDHA ARTS AND SCIENCE COLLEGE
+    </textPath>
+  </text>
+
+  <!-- Curved Text: Bottom Arc -->
+  <text font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="19.5" fill="#1e3a8a" letter-spacing="2">
+    <textPath href="#bottomTextPath" startOffset="50%" text-anchor="middle">
+      DEPARTMENT OF COMPUTER APPLICATIONS
+    </textPath>
+  </text>
+
+  <!-- Inner Center Graphic -->
+  <g transform="translate(250, 230)">
+    <!-- Stylized TW Logo -->
+    <!-- Left Wing / T bar -->
+    <path d="M -75,-60 H -15 V -40 H -45 V 20 H -75 Z" fill="url(#twBlueGrad)" />
+    <!-- Center / W shape overlapping -->
+    <path d="M -45,-60 L 0,35 L 45,-60 L 75,-60 L 25,50 L -25,50 L -75,-60 Z" fill="url(#twBlueGrad)" opacity="0.95" />
+    <path d="M 15,-60 L 45,30 L 75,-60 H 45 Z" fill="#1d4ed8" />
+    <!-- Right side W diagonal accent -->
+    <path d="M -15,-60 L 0,-20 L 15,-60 Z" fill="#3b82f6" />
+    
+    <!-- Modern Clean TW Monogram Graphic -->
+    <g transform="translate(0, -5)">
+      <!-- Main TW Blue Emblem -->
+      <path d="M -80,-50 H 80 V -32 H 10 L 45,45 H 12 L -10,-10 L -32,45 H -65 L -40,-10 L -62,-32 H -80 Z" fill="#2563eb" />
+      <path d="M -15,-32 L 15,35 L 45,-32 H 15 Z" fill="#1d4ed8" />
+    </g>
+
+    <!-- Subtext inside center circle: TECH WIZARDS ASSOCIATION -->
+    <text x="0" y="75" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="16" fill="#0f172a" text-anchor="middle" letter-spacing="1">
+      TECH WIZARDS ASSOCIATION
+    </text>
+  </g>
+</svg>

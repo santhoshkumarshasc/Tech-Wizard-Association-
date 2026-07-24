@@ -1,0 +1,168 @@
+{
+  "entities": {
+    "siteConfig": {
+      "title": "Site Configuration",
+      "description": "Global settings for Tech Wizards Association",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "short": { "type": "string" },
+        "college": { "type": "string" },
+        "department": { "type": "string" },
+        "tagline": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "logoScale": { "type": "number" },
+        "logoFit": { "type": "string" },
+        "logoShape": { "type": "string" },
+        "logoPadding": { "type": "number" },
+        "logoBg": { "type": "string" }
+      }
+    },
+    "departmentInfo": {
+      "title": "Department Information",
+      "description": "Overview, HOD details, programs, and facilities",
+      "type": "object",
+      "properties": {
+        "overview": { "type": "string" },
+        "vision": { "type": "string" },
+        "mission": { "type": "array" },
+        "hodName": { "type": "string" },
+        "hodRole": { "type": "string" },
+        "hodMessage": { "type": "string" },
+        "hodPhotoUrl": { "type": "string" },
+        "programs": { "type": "array" },
+        "facilities": { "type": "array" }
+      }
+    },
+    "announcement": {
+      "title": "Announcement",
+      "description": "Global announcement bar configuration",
+      "type": "object",
+      "properties": {
+        "active": { "type": "boolean" },
+        "badge": { "type": "string" },
+        "title": { "type": "string" },
+        "linkText": { "type": "string" },
+        "linkUrl": { "type": "string" },
+        "type": { "type": "string" }
+      }
+    },
+    "event": {
+      "title": "Event Item",
+      "description": "An event on the TWA calendar",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "maxLength": 200 },
+        "date": { "type": "string" },
+        "tag": { "type": "string" },
+        "desc": { "type": "string", "maxLength": 2000 },
+        "imageUrl": { "type": "string" },
+        "status": { "type": "string" },
+        "photos": { "type": "array" }
+      },
+      "required": ["title", "date"]
+    },
+    "officeMember": {
+      "title": "Office Bearer Member",
+      "description": "Core leadership team member",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "year": { "type": "string" },
+        "initials": { "type": "string" },
+        "bio": { "type": "string" },
+        "photoUrl": { "type": "string" }
+      },
+      "required": ["name", "role"]
+    },
+    "teamWing": {
+      "title": "Team Wing",
+      "description": "Specialized squad or wing in the association",
+      "type": "object",
+      "properties": {
+        "slug": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "lead": { "type": "string" },
+        "color": { "type": "string" },
+        "icon": { "type": "string" },
+        "members": { "type": "array" }
+      },
+      "required": ["slug", "name"]
+    },
+    "contactMessage": {
+      "title": "Contact Message",
+      "description": "Message submitted via contact form",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "year": { "type": "string" },
+        "subject": { "type": "string" },
+        "interest": { "type": "string" },
+        "message": { "type": "string" },
+        "date": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["name", "message"]
+    },
+    "adminUser": {
+      "title": "Admin User",
+      "description": "User account for admin panel access",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "fullName": { "type": "string" },
+        "role": { "type": "string" },
+        "teamSlug": { "type": "string" },
+        "permissions": { "type": "object" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["username", "fullName"]
+    }
+  },
+  "firestore": {
+    "/settings/config": {
+      "schema": { "$ref": "#/entities/siteConfig" },
+      "description": "Global site info and settings"
+    },
+    "/settings/department": {
+      "schema": { "$ref": "#/entities/departmentInfo" },
+      "description": "Department information and overview"
+    },
+    "/settings/announcement": {
+      "schema": { "$ref": "#/entities/announcement" },
+      "description": "Global announcement bar configuration"
+    },
+    "/events/{eventId}": {
+      "schema": { "$ref": "#/entities/event" },
+      "description": "Events collection"
+    },
+    "/office/{memberId}": {
+      "schema": { "$ref": "#/entities/officeMember" },
+      "description": "Office leadership members collection"
+    },
+    "/teams/{teamSlug}": {
+      "schema": { "$ref": "#/entities/teamWing" },
+      "description": "Team wings collection"
+    },
+    "/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/contactMessage" },
+      "description": "Contact messages collection"
+    },
+    "/adminUsers/{userId}": {
+      "schema": { "$ref": "#/entities/adminUser" },
+      "description": "Admin user accounts collection"
+    }
+  }
+}
