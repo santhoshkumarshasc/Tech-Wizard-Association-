@@ -1094,6 +1094,15 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
       const updated = prev.map((u) => {
         if (u.id === id) {
           const newU = { ...u, ...userData };
+          if (userData.username) {
+            newU.username = userData.username.trim().toLowerCase();
+          }
+          if (userData.password) {
+            newU.password = userData.password.trim();
+          }
+          if (currentUser && currentUser.id === id) {
+            setCurrentUser(newU);
+          }
           setDoc(doc(db, "adminUsers", id), newU, { merge: true }).catch((err) =>
             handleFirestoreError(err, OperationType.WRITE, `adminUsers/${id}`),
           );
