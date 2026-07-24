@@ -358,12 +358,13 @@ function AdminPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const success = store.loginUser(usernameInput, pinInput);
-    if (!success) {
+    const result = store.loginUser(usernameInput, pinInput);
+    if (!result.success) {
       setPinError(true);
     } else {
       setPinError(false);
       setPinInput("");
+      showToast(`Welcome back, ${result.user?.fullName || result.user?.username}!`);
     }
   };
 
@@ -4813,7 +4814,6 @@ function AdminPage() {
                   </label>
                   <input
                     type="text"
-                    required
                     placeholder="e.g. Candidate Applicant"
                     value={newUserForm.name}
                     onChange={(e) => setNewUserForm({ ...newUserForm, name: e.target.value })}

@@ -999,17 +999,22 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
 
   const loginUser = (username: string, password: string) => {
     const cleanUser = username.trim().toLowerCase();
+    const cleanPass = password.trim();
     const found = adminUsers.find(
-      (u) => u.username.toLowerCase() === cleanUser && u.status === "active",
+      (u) =>
+        u.username.toLowerCase() === cleanUser &&
+        (u.status === "active" || !u.status) &&
+        u.password.trim() === cleanPass,
     );
 
-    if (found && found.password === password) {
-      setCurrentUser(found);
+    if (found) {
+      const updatedUser = { ...found, lastLogin: new Date().toISOString() };
+      setCurrentUser(updatedUser);
       setIsAuthenticated(true);
-      return { success: true, user: found };
+      return { success: true, user: updatedUser };
     }
 
-    if (cleanUser === "admin" && (password === adminPin || password === "admin2026")) {
+    if (cleanUser === "admin" && (cleanPass === adminPin.trim() || cleanPass === "admin2026")) {
       const superAdminUser = adminUsers.find((u) => u.username.toLowerCase() === "admin") || {
         id: "usr-admin",
         username: "admin",
