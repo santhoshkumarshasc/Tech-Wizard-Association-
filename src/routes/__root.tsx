@@ -128,7 +128,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -137,7 +137,7 @@ function RootShell({ children }: { children: ReactNode }) {
         />
         <HeadContent />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <ThemeProvider>
           <SiteStoreProvider>{children}</SiteStoreProvider>
         </ThemeProvider>
@@ -151,11 +151,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <SiteStoreProvider>
-          <SiteShell />
-        </SiteStoreProvider>
-      </ThemeProvider>
+      <SiteShell />
     </QueryClientProvider>
   );
 }
