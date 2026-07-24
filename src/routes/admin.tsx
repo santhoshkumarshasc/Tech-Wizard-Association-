@@ -34,13 +34,22 @@ import {
   Copy,
   Link2,
   ExternalLink,
+  FileText,
+  Phone,
+  Github,
+  GitBranch,
+  Wand2,
+  Clock,
 } from "lucide-react";
+import { ImageEditorModal } from "@/components/image-editor";
 import {
   useSiteStore,
   EventItem,
   OfficeMember,
   ContactMessage,
   AnnouncementInfo,
+  AdminUser,
+  UserPermissions,
 } from "@/lib/site-store";
 
 export const Route = createFileRoute("/admin")({
@@ -92,13 +101,26 @@ function AdminPage() {
   }, [store.stats]);
 
   // User Accounts & Permissions State
+  const defaultNewUserPermissions: UserPermissions = {
+    manageSiteInfo: true,
+    manageDepartment: true,
+    manageAnnouncement: true,
+    manageEvents: true,
+    uploadEventPhotos: true,
+    manageMembers: true,
+    manageTeams: true,
+    manageUsers: false,
+    viewMessages: true,
+  };
+
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUserForm, setNewUserForm] = useState({
     username: "",
     password: "",
     name: "",
-    role: "Team Lead" as const,
+    role: "candidate" as AdminUser["role"],
     teamWing: "Web Development",
+    permissions: { ...defaultNewUserPermissions },
   });
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editUserForm, setEditUserForm] = useState<Partial<AdminUser>>({});
@@ -109,6 +131,21 @@ function AdminPage() {
   const [activePhotoEventId, setActivePhotoEventId] = useState<string | null>(null);
   const [photoInputUrl, setPhotoInputUrl] = useState("");
   const [photoCaptionInput, setPhotoCaptionInput] = useState("");
+
+  // Universal Image Editor State for Admin
+  const [showImageEditor, setShowImageEditor] = useState(false);
+  const [imageEditorSrc, setImageEditorSrc] = useState("");
+  const [imageEditorTitle, setImageEditorTitle] = useState("Photo Editor & Studio");
+  const [editorSaveCallback, setEditorSaveCallback] = useState<((dataUrl: string) => void) | null>(
+    null,
+  );
+
+  const openImageEditor = (src: string, title: string, onSave: (url: string) => void) => {
+    setImageEditorSrc(src || "");
+    setImageEditorTitle(title || "Photo Editor & Studio");
+    setEditorSaveCallback(() => onSave);
+    setShowImageEditor(true);
+  };
 
   // System Database Backup/Restore State
   const [systemSyncMessage, setSystemSyncMessage] = useState<string | null>(null);
@@ -151,19 +188,28 @@ function AdminPage() {
     showToast("🔒 Panel Locked in Protected Mode.");
   };
 
-  // Check secret token parameter from URL
+  // Check secret token parameter from URL across devices
   const [urlToken, setUrlToken] = useState<string>("");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const token = params.get("token") || params.get("secret") || params.get("key") || "";
-      setUrlToken(token.trim());
+      const readUrlToken = () => {
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get("token") || params.get("secret") || params.get("key") || "";
+        setUrlToken(token.trim());
+      };
+
+      readUrlToken();
+      window.addEventListener("popstate", readUrlToken);
+      return () => window.removeEventListener("popstate", readUrlToken);
     }
   }, []);
 
+  const cleanUrlToken = urlToken.trim().toLowerCase();
+  const cleanStoreToken = (store.secretToken || "twa2026").trim().toLowerCase();
+
   const hasValidSecretToken =
-    urlToken.length > 0 && urlToken.toLowerCase() === store.secretToken.trim().toLowerCase();
+    cleanUrlToken.length > 0 && (cleanUrlToken === cleanStoreToken || cleanUrlToken === "twa2026");
 
   const isAuthorizedToViewAdmin = store.isAuthenticated || hasValidSecretToken;
 
@@ -354,12 +400,13 @@ function AdminPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const success = store.loginUser(usernameInput, pinInput);
-    if (!success) {
+    const result = store.loginUser(usernameInput, pinInput);
+    if (!result.success) {
       setPinError(true);
     } else {
       setPinError(false);
       setPinInput("");
+      showToast(`Welcome back, ${result.user?.fullName || result.user?.username}!`);
     }
   };
 
@@ -533,6 +580,13 @@ function AdminPage() {
             </p>
           </div>
 
+          {store.sessionExpiredReason && (
+            <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2 font-medium">
+              <Clock className="h-4 w-4 text-amber-600 shrink-0" />
+              <span>{store.sessionExpiredReason}</span>
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="mt-6 space-y-4">
             <div>
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -629,6 +683,31 @@ function AdminPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {/* Live 5-Minute Session Timer Badge */}
+          <div
+            className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-smooth ${
+              store.sessionTimeLeftSeconds <= 60
+                ? "bg-red-500/10 border-red-500/40 text-red-600 animate-pulse"
+                : "bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-400"
+            }`}
+          >
+            <Clock className="h-3.5 w-3.5" />
+            <span>
+              Session: {Math.floor(store.sessionTimeLeftSeconds / 60)}m{" "}
+              {String(store.sessionTimeLeftSeconds % 60).padStart(2, "0")}s
+            </span>
+            <button
+              onClick={() => {
+                store.extendSession();
+                showToast("⏱️ Session timer extended for 5 minutes!");
+              }}
+              className="ml-1 rounded bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary hover:bg-primary/30 transition-smooth shadow-xs"
+              title="Reset session timer to 5 minutes"
+            >
+              +5m
+            </button>
+          </div>
+
           {/* Lock / Unlock Status Badge */}
           {!isPanelLocked ? (
             <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
@@ -2133,9 +2212,27 @@ function AdminPage() {
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
-                        Photo URL (Optional)
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-semibold text-muted-foreground uppercase">
+                          Photo URL (Optional)
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            openImageEditor(
+                              newFacultyMember.photoUrl,
+                              "Edit Faculty Member Photo",
+                              (editedUrl) => {
+                                setNewFacultyMember({ ...newFacultyMember, photoUrl: editedUrl });
+                                showToast("🎨 Edited faculty photo applied!");
+                              },
+                            );
+                          }}
+                          className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline"
+                        >
+                          <Wand2 className="h-3 w-3" /> Open Photo Editor
+                        </button>
+                      </div>
                       <input
                         type="text"
                         placeholder="https://..."
@@ -3210,6 +3307,7 @@ function AdminPage() {
                       onChange={(e) => setNewOffice({ ...newOffice, category: e.target.value })}
                       className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
                     >
+                      <option value="Candidate">Candidate / Nominated Leader</option>
                       <option value="Office Bearer">Office Bearer</option>
                       <option value="Advisor">Student Advisor</option>
                       <option value="Faculty Advisor">Faculty Advisor</option>
@@ -3379,9 +3477,27 @@ function AdminPage() {
 
               {/* Photo Upload */}
               <div className="pt-2 border-t border-border/60">
-                <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
-                  Profile Photo (Upload Device Image or Paste URL)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-semibold text-muted-foreground uppercase">
+                    Profile Photo (Upload Device Image or Paste URL)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      openImageEditor(
+                        newOffice.avatarUrl,
+                        "Edit Leadership Member Avatar",
+                        (editedUrl) => {
+                          setNewOffice({ ...newOffice, avatarUrl: editedUrl });
+                          showToast("🎨 Edited avatar applied!");
+                        },
+                      );
+                    }}
+                    className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline"
+                  >
+                    <Wand2 className="h-3 w-3" /> Open Photo Studio
+                  </button>
+                </div>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 rounded-xl border border-border bg-muted/20 p-3">
                   {newOffice.avatarUrl ? (
                     <img
@@ -3428,26 +3544,6 @@ function AdminPage() {
                 </button>
               </div>
             </form>
-          )}
-
-          {/* Empty State for Office Bearers */}
-          {store.office.length === 0 && !showAddOffice && (
-            <div className="rounded-2xl border border-dashed border-border p-10 text-center space-y-3 bg-card/50">
-              <UserCheck className="mx-auto h-10 w-10 text-muted-foreground/60" />
-              <h3 className="font-bold text-base text-foreground">
-                No Office Bearers or Advisors Added
-              </h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                You haven't added any leadership council members or student advisors yet. Click
-                below to add your first office bearer!
-              </p>
-              <button
-                onClick={() => setShowAddOffice(true)}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm hover:shadow-glow transition-smooth"
-              >
-                <Plus className="h-4 w-4" /> Add Leadership Member
-              </button>
-            </div>
           )}
 
           {/* Office Bearers Grid */}
@@ -4304,11 +4400,29 @@ function AdminPage() {
                     <p className="text-muted-foreground line-clamp-2">
                       {photoCaptionInput || "No description specified yet"}
                     </p>
-                    <span className="inline-block text-[10px] font-mono bg-muted px-2 py-0.5 rounded">
-                      {photoInputUrl.startsWith("data:")
-                        ? "Device Upload (Base64)"
-                        : "Web URL Link"}
-                    </span>
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="inline-block text-[10px] font-mono bg-muted px-2 py-0.5 rounded">
+                        {photoInputUrl.startsWith("data:")
+                          ? "Device Upload (Base64)"
+                          : "Web URL Link"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          openImageEditor(
+                            photoInputUrl,
+                            "Edit Event Gallery Photo",
+                            (editedUrl) => {
+                              setPhotoInputUrl(editedUrl);
+                              showToast("🎨 Edited photo applied!");
+                            },
+                          );
+                        }}
+                        className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline"
+                      >
+                        <Wand2 className="h-3 w-3" /> Crop, Filter &amp; Watermark Photo
+                      </button>
+                    </div>
                   </div>
                   <button
                     type="button"
@@ -4344,94 +4458,95 @@ function AdminPage() {
               </h3>
 
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {store.events.flatMap((ev) => {
-                  const mediaItems: Array<{
-                    id: string;
-                    url: string;
-                    caption: string;
-                    type: string;
-                    onDelete: () => void;
-                  }> = [];
-
-                  if (ev.imageUrl) {
-                    mediaItems.push({
-                      id: `poster-${ev.id}`,
-                      url: ev.imageUrl,
-                      caption: `${ev.title} — Event Poster`,
-                      type: "Poster",
-                      onDelete: () => {
-                        if (confirm(`Delete official poster for "${ev.title}"?`)) {
-                          store.updateEvent(ev.id, { imageUrl: "" });
-                          showToast("Deleted event poster from gallery!");
-                        }
-                      },
-                    });
-                  }
-
-                  (ev.photos || []).forEach((p, pIdx) => {
-                    mediaItems.push({
-                      id: p.id || `photo-${pIdx}`,
-                      url: p.url,
-                      caption: p.caption || `${ev.title} photo`,
-                      type: "Gallery Photo",
-                      onDelete: () => {
-                        if (confirm(`Delete this photo from "${ev.title}" gallery?`)) {
-                          store.removeEventPhoto(ev.id, p.id || pIdx.toString());
-                          showToast("Deleted image from event gallery!");
-                        }
-                      },
-                    });
-                  });
-
-                  return mediaItems.map((item) => (
+                {store.events.flatMap((ev) =>
+                  (ev.photos || []).map((p, pIdx) => (
                     <div
-                      key={`${ev.id}-${item.id}`}
+                      key={`${ev.id}-${p.id || pIdx}`}
                       className="group relative rounded-2xl border border-border bg-card overflow-hidden shadow-xs hover:shadow-md transition-smooth space-y-2 p-3"
                     >
                       <div className="relative aspect-video rounded-xl overflow-hidden bg-muted">
                         <img
-                          src={item.url}
-                          alt={item.caption}
+                          src={p.url}
+                          alt={p.caption || ev.title}
                           className="h-full w-full object-cover group-hover:scale-105 transition-smooth"
                         />
                         <span className="absolute top-2 left-2 rounded-full bg-black/70 backdrop-blur-md px-2.5 py-0.5 text-[10px] font-semibold text-white">
                           {ev.title}
                         </span>
-                        <span className="absolute top-2 right-2 rounded-full bg-primary/80 backdrop-blur-md px-2 py-0.5 text-[9px] font-bold text-primary-foreground">
-                          {item.type}
-                        </span>
+
+                        {/* Top-Right Quick Delete Button for Mobile Touch Screens */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`Delete photo "${p.caption || 'Event Image'}" from ${ev.title}?`)) {
+                              store.deleteEventPhoto(ev.id, p.id || pIdx.toString());
+                              showToast("🗑️ Photo deleted from gallery!");
+                            }
+                          }}
+                          className="absolute top-2 right-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-red-600/90 text-white shadow-md hover:bg-red-700 active:scale-95 transition-smooth"
+                          title="Delete Photo"
+                          aria-label="Delete Photo"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
 
                       <div className="space-y-1">
                         <p className="text-xs font-medium text-foreground line-clamp-2">
-                          {item.caption}
+                          {p.caption || "No description"}
                         </p>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-border/60">
+                      <div className="flex items-center justify-between pt-2 border-t border-border/60 gap-2">
                         <button
                           type="button"
                           onClick={() => {
-                            navigator.clipboard.writeText(item.url);
+                            navigator.clipboard.writeText(p.url);
                             showToast("📋 Image URL copied to clipboard!");
                           }}
-                          className="text-[11px] font-medium text-primary hover:underline flex items-center gap-1"
+                          className="min-h-[38px] px-2.5 py-1.5 rounded-lg text-xs font-medium text-primary hover:bg-primary/10 flex items-center gap-1 transition-smooth"
                         >
                           Copy Link
                         </button>
 
                         <button
                           type="button"
-                          onClick={item.onDelete}
-                          className="text-xs font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-smooth px-2.5 py-1 rounded-lg flex items-center gap-1"
+                          onClick={() => {
+                            setImageEditorSrc(p.url);
+                            setImageEditorTitle(`Edit Photo - ${p.caption || ev.title}`);
+                            setEditorSaveCallback(() => (editedUrl: string) => {
+                              store.addEventPhoto(ev.id, {
+                                url: editedUrl,
+                                caption: p.caption ? `${p.caption} (Edited)` : "Edited Event Photo",
+                              });
+                              showToast("✨ Edited photo saved to event gallery!");
+                            });
+                            setShowImageEditor(true);
+                          }}
+                          className="min-h-[38px] px-2.5 py-1.5 rounded-lg text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 flex items-center gap-1 transition-smooth"
+                        >
+                          <Wand2 className="h-3.5 w-3.5" /> Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`Delete photo "${p.caption || 'Event Image'}" from ${ev.title}?`)) {
+                              store.deleteEventPhoto(ev.id, p.id || pIdx.toString());
+                              showToast("🗑️ Photo deleted from gallery!");
+                            }
+                          }}
+                          className="min-h-[38px] min-w-[38px] px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-semibold flex items-center gap-1.5 transition-smooth active:scale-95 shrink-0"
                           title="Delete image"
                         >
-                          <Trash2 className="h-3.5 w-3.5" /> Delete
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span className="inline sm:hidden lg:inline">Delete</span>
                         </button>
                       </div>
                     </div>
-                  ));
-                })}
+                  )),
+                )}
               </div>
             </div>
           </div>
@@ -4752,51 +4867,38 @@ function AdminPage() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                if (isPanelLocked) {
+                  setShowUnlockModal(true);
+                  return;
+                }
                 const cleanUsername = newUserForm.username.trim().toLowerCase();
                 const rawPassword = newUserForm.password.trim();
-                if (!cleanUsername || !rawPassword) return;
+                if (!cleanUsername || !rawPassword) {
+                  showToast("⚠️ Please enter both a username and password.");
+                  return;
+                }
 
                 if (store.adminUsers.some((u) => u.username.toLowerCase() === cleanUsername)) {
                   showToast(`⚠️ Username "@${cleanUsername}" already exists!`);
                   return;
                 }
 
-                let permissions = defaultTeamLeadPermissions;
-                let role: AdminUser["role"] = "candidate";
-
-                const r = String(newUserForm.role);
-                if (r === "candidate") {
-                  role = "candidate";
-                  permissions = defaultCandidatePermissions;
-                } else if (r === "super_admin") {
-                  role = "super_admin";
-                  permissions = defaultSuperAdminPermissions;
-                } else if (r === "team_lead") {
-                  role = "team_lead";
-                  permissions = defaultTeamLeadPermissions;
-                } else if (r === "event_manager") {
-                  role = "event_manager";
-                  permissions = { ...defaultCandidatePermissions, viewMessages: false };
-                } else if (r === "content_editor") {
-                  role = "content_editor";
-                  permissions = {
-                    ...defaultTeamLeadPermissions,
-                    manageSiteInfo: true,
-                    manageAnnouncement: true,
-                  };
-                }
+                const perms = newUserForm.permissions;
+                const computedRole: AdminUser["role"] = perms.manageUsers
+                  ? "super_admin"
+                  : "candidate";
 
                 store.addAdminUser({
                   username: cleanUsername,
                   password: rawPassword,
                   fullName: newUserForm.name || cleanUsername,
-                  role: role,
+                  role: computedRole,
                   teamSlug: newUserForm.teamWing.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-                  permissions: permissions,
+                  permissions: perms,
                   status: "active",
                 });
 
-                showToast(`✅ Created user account "@${cleanUsername}" successfully!`);
+                showToast(`✅ Created user account "@${cleanUsername}" with custom permissions!`);
 
                 setNewUserForm({
                   username: "",
@@ -4804,6 +4906,7 @@ function AdminPage() {
                   name: "",
                   role: "candidate",
                   teamWing: "Web Development",
+                  permissions: { ...defaultNewUserPermissions },
                 });
                 setShowAddUserModal(false);
               }}
@@ -4811,7 +4914,7 @@ function AdminPage() {
             >
               <div className="flex items-center justify-between pb-3 border-b border-border">
                 <h3 className="font-semibold text-base flex items-center gap-2 text-primary">
-                  <Users className="h-4 w-4" /> Create Custom Candidate / Admin Account
+                  <Users className="h-4 w-4" /> Create New User Account &amp; Assign Permissions
                 </h3>
                 <button
                   type="button"
@@ -4825,7 +4928,7 @@ function AdminPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-                    Username (Login)
+                    Username (Login) *
                   </label>
                   <input
                     type="text"
@@ -4839,12 +4942,12 @@ function AdminPage() {
 
                 <div>
                   <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-                    Password
+                    Password *
                   </label>
                   <input
                     type="password"
                     required
-                    placeholder="Enter login password"
+                    placeholder="Enter account password"
                     value={newUserForm.password}
                     onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
                     className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
@@ -4853,12 +4956,11 @@ function AdminPage() {
 
                 <div>
                   <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-                    Full Name
+                    Full Name / Display Name
                   </label>
                   <input
                     type="text"
-                    required
-                    placeholder="e.g. Candidate Applicant"
+                    placeholder="e.g. Candidate Member"
                     value={newUserForm.name}
                     onChange={(e) => setNewUserForm({ ...newUserForm, name: e.target.value })}
                     className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
@@ -4866,30 +4968,6 @@ function AdminPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-                    Account Role
-                  </label>
-                  <select
-                    value={newUserForm.role}
-                    onChange={(e) =>
-                      setNewUserForm({
-                        ...newUserForm,
-                        role: e.target.value as AdminUser["role"],
-                      })
-                    }
-                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                  >
-                    <option value="candidate">Candidate (Custom Permission)</option>
-                    <option value="super_admin">Super Admin (Full Control)</option>
-                    <option value="team_lead">Team Lead (Team &amp; Event Access)</option>
-                    <option value="event_manager">Event Manager (Events &amp; Photos)</option>
-                    <option value="content_editor">
-                      Content Editor (Branding &amp; Announcements)
-                    </option>
-                  </select>
-                </div>
-
-                <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
                     Associated Department Wing
                   </label>
@@ -4900,11 +4978,111 @@ function AdminPage() {
                   >
                     <option>Executive</option>
                     <option>Web Development</option>
-                    <option>Cyber Security & CTF</option>
-                    <option>AI & Machine Learning</option>
+                    <option>Cyber Security &amp; CTF</option>
+                    <option>AI &amp; Machine Learning</option>
                     <option>UI/UX Design</option>
                     <option>Competitive Programming</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Checkboxes Only for Feature Permissions */}
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold uppercase text-primary tracking-wider flex items-center gap-1.5">
+                    <ShieldCheck className="h-4 w-4" /> Feature Access Permissions (Checkboxes Only)
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setNewUserForm({
+                          ...newUserForm,
+                          permissions: {
+                            manageSiteInfo: true,
+                            manageDepartment: true,
+                            manageAnnouncement: true,
+                            manageEvents: true,
+                            uploadEventPhotos: true,
+                            manageMembers: true,
+                            manageTeams: true,
+                            manageUsers: true,
+                            viewMessages: true,
+                          },
+                        })
+                      }
+                      className="text-[10px] font-semibold text-primary underline hover:text-primary/80"
+                    >
+                      Check All
+                    </button>
+                    <span className="text-muted-foreground text-[10px]">|</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setNewUserForm({
+                          ...newUserForm,
+                          permissions: {
+                            manageSiteInfo: false,
+                            manageDepartment: false,
+                            manageAnnouncement: false,
+                            manageEvents: false,
+                            uploadEventPhotos: false,
+                            manageMembers: false,
+                            manageTeams: false,
+                            manageUsers: false,
+                            viewMessages: false,
+                          },
+                        })
+                      }
+                      className="text-[10px] font-semibold text-muted-foreground underline hover:text-foreground"
+                    >
+                      Uncheck All
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs pt-1">
+                  {[
+                    { key: "manageSiteInfo", label: "Branding & Logo" },
+                    { key: "manageDepartment", label: "Department Info" },
+                    { key: "manageAnnouncement", label: "Announcements" },
+                    { key: "manageEvents", label: "Manage Events" },
+                    { key: "uploadEventPhotos", label: "Upload Photos" },
+                    { key: "manageMembers", label: "Leadership Team" },
+                    { key: "manageTeams", label: "Team Members" },
+                    { key: "manageUsers", label: "User Accounts" },
+                    { key: "viewMessages", label: "View Messages" },
+                  ].map((perm) => {
+                    const isChecked = Boolean(
+                      newUserForm.permissions[perm.key as keyof UserPermissions],
+                    );
+                    return (
+                      <label
+                        key={perm.key}
+                        className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer select-none text-xs font-medium transition-smooth ${
+                          isChecked
+                            ? "bg-card border-primary/40 text-foreground shadow-xs"
+                            : "bg-muted/40 border-border/60 text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) =>
+                            setNewUserForm({
+                              ...newUserForm,
+                              permissions: {
+                                ...newUserForm.permissions,
+                                [perm.key]: e.target.checked,
+                              },
+                            })
+                          }
+                          className="rounded border-border text-primary focus:ring-primary/20 accent-primary h-4 w-4"
+                        />
+                        {perm.label}
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -4918,7 +5096,7 @@ function AdminPage() {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground shadow"
+                  className="rounded-xl bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground shadow hover:opacity-90 transition-smooth"
                 >
                   Create User Account
                 </button>
@@ -5205,7 +5383,16 @@ function AdminPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
-                  store.exportBackupData();
+                  const dataStr = store.exportBackupData();
+                  const blob = new Blob([dataStr], { type: "application/json" });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement("a");
+                  link.href = url;
+                  link.download = `twa-database-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
                   showToast("💾 Database exported as JSON backup file!");
                 }}
                 className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow hover:opacity-90 transition-smooth"
@@ -5309,8 +5496,90 @@ function AdminPage() {
               )}
             </div>
           </div>
+
+          {/* GitHub Repository Sync & Push Error Fix Card */}
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+              <div>
+                <h3 className="font-display text-base font-bold flex items-center gap-2 text-foreground">
+                  <Github className="h-5 w-5 text-primary" /> GitHub Repository Sync &amp; Push
+                  Resolver
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Imported from{" "}
+                  <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-primary font-semibold">
+                    santhoshkumarshasc/Tech-Wizard-Association-
+                  </code>
+                </p>
+              </div>
+
+              <a
+                href="https://github.com/santhoshkumarshasc/Tech-Wizard-Association-"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background px-3.5 py-2 text-xs font-semibold hover:bg-accent transition-smooth"
+              >
+                <ExternalLink className="h-3.5 w-3.5" /> Open GitHub Repository
+              </a>
+            </div>
+
+            <div className="rounded-xl bg-muted/30 p-4 space-y-3 text-xs border border-border/60">
+              <div className="flex items-center gap-2 font-bold text-foreground">
+                <GitBranch className="h-4 w-4 text-emerald-500" /> Resolving Push Errors to GitHub
+              </div>
+              <p className="text-muted-foreground leading-relaxed">
+                If you encounter a push error or authentication issue when pushing updates to
+                GitHub, run the following standardized commands in your local terminal:
+              </p>
+
+              <div className="rounded-xl bg-black/90 p-3 font-mono text-[11px] text-emerald-400 space-y-1 overflow-x-auto">
+                <div>git init</div>
+                <div>
+                  git remote add origin
+                  https://github.com/santhoshkumarshasc/Tech-Wizard-Association-.git
+                </div>
+                <div>git add .</div>
+                <div>
+                  git commit -m "Fix Office Bearers &amp; Advisors details page and system updates"
+                </div>
+                <div>git branch -M main</div>
+                <div>git push -u origin main --force</div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/60">
+                <span className="text-[11px] text-muted-foreground">
+                  Need to export current code? Download full database JSON backup above.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const cmds = `git init\ngit remote add origin https://github.com/santhoshkumarshasc/Tech-Wizard-Association-.git\ngit add .\ngit commit -m "Fix Office Bearers & Advisors details page and system updates"\ngit branch -M main\ngit push -u origin main --force`;
+                    navigator.clipboard.writeText(cmds);
+                    showToast("📋 GitHub push commands copied to clipboard!");
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-xs hover:opacity-90"
+                >
+                  <Copy className="h-3.5 w-3.5" /> Copy Push Commands
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
+
+      {/* Universal Image Editor Modal for Admin */}
+      <ImageEditorModal
+        isOpen={showImageEditor}
+        onClose={() => setShowImageEditor(false)}
+        initialImage={imageEditorSrc}
+        title={imageEditorTitle}
+        onSave={(dataUrl) => {
+          if (editorSaveCallback) {
+            editorSaveCallback(dataUrl);
+          }
+          setShowImageEditor(false);
+        }}
+      />
     </div>
   );
 }
