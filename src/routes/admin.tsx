@@ -39,6 +39,7 @@ import {
   Github,
   GitBranch,
   Wand2,
+  Clock,
 } from "lucide-react";
 import { ImageEditorModal } from "@/components/image-editor";
 import {
@@ -579,6 +580,13 @@ function AdminPage() {
             </p>
           </div>
 
+          {store.sessionExpiredReason && (
+            <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2 font-medium">
+              <Clock className="h-4 w-4 text-amber-600 shrink-0" />
+              <span>{store.sessionExpiredReason}</span>
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="mt-6 space-y-4">
             <div>
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -675,6 +683,31 @@ function AdminPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {/* Live 5-Minute Session Timer Badge */}
+          <div
+            className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-smooth ${
+              store.sessionTimeLeftSeconds <= 60
+                ? "bg-red-500/10 border-red-500/40 text-red-600 animate-pulse"
+                : "bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-400"
+            }`}
+          >
+            <Clock className="h-3.5 w-3.5" />
+            <span>
+              Session: {Math.floor(store.sessionTimeLeftSeconds / 60)}m{" "}
+              {String(store.sessionTimeLeftSeconds % 60).padStart(2, "0")}s
+            </span>
+            <button
+              onClick={() => {
+                store.extendSession();
+                showToast("⏱️ Session timer extended for 5 minutes!");
+              }}
+              className="ml-1 rounded bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary hover:bg-primary/30 transition-smooth shadow-xs"
+              title="Reset session timer to 5 minutes"
+            >
+              +5m
+            </button>
+          </div>
+
           {/* Lock / Unlock Status Badge */}
           {!isPanelLocked ? (
             <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">

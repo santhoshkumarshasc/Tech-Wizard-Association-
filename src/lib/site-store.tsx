@@ -384,6 +384,10 @@ interface SiteStoreContextType {
   adminPin: string;
   secretToken: string;
   isAuthenticated: boolean;
+  sessionExpiry: number | null;
+  sessionTimeLeftSeconds: number;
+  sessionExpiredReason: string | null;
+  extendSession: () => void;
   cloudSyncStatus: "connected" | "syncing" | "error" | "offline";
   lastSyncedAt: string | null;
   loginAdmin: (pin: string) => boolean;
@@ -541,6 +545,72 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
   const [adminPin, setPinState] = useState<string>("admin2026");
   const [secretToken, setSecretTokenState] = useState<string>("twa2026");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  // 5 Minute Admin Session Timeout State
+  const SESSION_DURATION_MS = 5 * 60 * 1000;
+  const [sessionExpiry, setSessionExpiry] = useState<number | null>(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("twa_admin_session_expiry");
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (parsed > Date.now()) return parsed;
+      }
+    }
+    return null;
+  });
+  const [sessionTimeLeftSeconds, setSessionTimeLeftSeconds] = useState<number>(300);
+  const [sessionExpiredReason, setSessionExpiredReason] = useState<string | null>(null);
+
+  // Restore session from sessionStorage on initial load
+  useEffect(() => {
+    if (sessionExpiry && sessionExpiry > Date.now()) {
+      setIsAuthenticated(true);
+      setSessionTimeLeftSeconds(Math.max(0, Math.ceil((sessionExpiry - Date.now()) / 1000)));
+    } else if (sessionExpiry && sessionExpiry <= Date.now()) {
+      setIsAuthenticated(false);
+      setSessionExpiry(null);
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("twa_admin_session_expiry");
+      }
+    }
+  }, []);
+
+  // Live Session Countdown & Auto-Logout Timer (5-minute limit)
+  useEffect(() => {
+    if (!isAuthenticated || !sessionExpiry) return;
+
+    const interval = setInterval(() => {
+      const remainingMs = sessionExpiry - Date.now();
+      const secs = Math.max(0, Math.ceil(remainingMs / 1000));
+      setSessionTimeLeftSeconds(secs);
+
+      if (remainingMs <= 0) {
+        setIsAuthenticated(false);
+        setCurrentUser(null);
+        setSessionExpiry(null);
+        setSessionTimeLeftSeconds(0);
+        setSessionExpiredReason(
+          "🔒 Your admin session expired after 5 minutes of inactivity. Please log in again.",
+        );
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("twa_admin_session_expiry");
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, sessionExpiry]);
+
+  const extendSession = () => {
+    const newExpiry = Date.now() + SESSION_DURATION_MS;
+    setSessionExpiry(newExpiry);
+    setSessionTimeLeftSeconds(300);
+    setSessionExpiredReason(null);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("twa_admin_session_expiry", newExpiry.toString());
+    }
+  };
+
   const [cloudSyncStatus, setCloudSyncStatus] = useState<
     "connected" | "syncing" | "error" | "offline"
   >("syncing");
@@ -1058,6 +1128,7 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
       const updatedUser = { ...found, lastLogin: new Date().toISOString() };
       setCurrentUser(updatedUser);
       setIsAuthenticated(true);
+      extendSession();
       return { success: true, user: updatedUser };
     }
 
@@ -1074,6 +1145,7 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
       };
       setCurrentUser(superAdminUser);
       setIsAuthenticated(true);
+      extendSession();
       return { success: true, user: superAdminUser };
     }
 
@@ -1088,6 +1160,11 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
   const logoutAdmin = () => {
     setIsAuthenticated(false);
     setCurrentUser(null);
+    setSessionExpiry(null);
+    setSessionTimeLeftSeconds(0);
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("twa_admin_session_expiry");
+    }
   };
 
   const addAdminUser = (userData: Omit<AdminUser, "id" | "createdAt">) => {
@@ -1583,6 +1660,10 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
         adminPin,
         secretToken,
         isAuthenticated,
+        sessionExpiry,
+        sessionTimeLeftSeconds,
+        sessionExpiredReason,
+        extendSession,
         cloudSyncStatus,
         lastSyncedAt,
         loginAdmin,
@@ -1639,6 +1720,10 @@ const defaultFallbackStore: SiteStoreContextType = {
   adminPin: "admin2026",
   secretToken: "twa2026",
   isAuthenticated: false,
+  sessionExpiry: null,
+  sessionTimeLeftSeconds: 300,
+  sessionExpiredReason: null,
+  extendSession: () => {},
   cloudSyncStatus: "connected",
   lastSyncedAt: null,
   loginAdmin: () => false,
