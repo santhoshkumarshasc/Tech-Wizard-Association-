@@ -1,0 +1,6 @@
+{
+  "name": "Tech Wizard Association",
+  "description": "Tech Wizard Association - Department of Computer Applications platform for events, members, and tech initiatives",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
