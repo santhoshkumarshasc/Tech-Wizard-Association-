@@ -1617,6 +1617,271 @@ function AdminPage() {
                   className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
+
+              {/* Creator Showcase Configuration Section */}
+              <div className="md:col-span-2 rounded-2xl border border-primary/30 bg-primary/5 p-5 space-y-4 mt-2">
+                <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
+                  <div className="flex items-center gap-2 text-sm font-bold text-primary">
+                    <Sparkles className="h-4 w-4 text-amber-500" />
+                    <span>Footer Creator Showcase Profile</span>
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Appears in footer showcase
+                  </span>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                      Creator Name
+                    </label>
+                    <input
+                      type="text"
+                      value={siteForm.creator?.name || "Santhosh Kumar S"}
+                      onChange={(e) =>
+                        setSiteForm({
+                          ...siteForm,
+                          creator: {
+                            ...(siteForm.creator || defaultCreatorProfile),
+                            name: e.target.value,
+                          },
+                        })
+                      }
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                      Role / Title
+                    </label>
+                    <input
+                      type="text"
+                      value={
+                        siteForm.creator?.role || "Lead Platform Creator & Full-Stack Architect"
+                      }
+                      onChange={(e) =>
+                        setSiteForm({
+                          ...siteForm,
+                          creator: {
+                            ...(siteForm.creator || defaultCreatorProfile),
+                            role: e.target.value,
+                          },
+                        })
+                      }
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                      Creator Bio
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={siteForm.creator?.bio || ""}
+                      onChange={(e) =>
+                        setSiteForm({
+                          ...siteForm,
+                          creator: {
+                            ...(siteForm.creator || defaultCreatorProfile),
+                            bio: e.target.value,
+                          },
+                        })
+                      }
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                      Avatar Image URL
+                    </label>
+                    <input
+                      type="text"
+                      value={siteForm.creator?.avatarUrl || ""}
+                      onChange={(e) =>
+                        setSiteForm({
+                          ...siteForm,
+                          creator: {
+                            ...(siteForm.creator || defaultCreatorProfile),
+                            avatarUrl: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="https://..."
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                      Appreciation Likes Count
+                    </label>
+                    <input
+                      type="number"
+                      value={siteForm.creator?.likesCount ?? 142}
+                      onChange={(e) =>
+                        setSiteForm({
+                          ...siteForm,
+                          creator: {
+                            ...(siteForm.creator || defaultCreatorProfile),
+                            likesCount: parseInt(e.target.value) || 0,
+                          },
+                        })
+                      }
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs font-mono font-bold text-primary outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                      GitHub Profile URL
+                    </label>
+                    <input
+                      type="text"
+                      value={siteForm.creator?.githubUrl || ""}
+                      onChange={(e) =>
+                        setSiteForm({
+                          ...siteForm,
+                          creator: {
+                            ...(siteForm.creator || defaultCreatorProfile),
+                            githubUrl: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="https://github.com/..."
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                      LinkedIn Profile URL
+                    </label>
+                    <input
+                      type="text"
+                      value={siteForm.creator?.linkedinUrl || ""}
+                      onChange={(e) =>
+                        setSiteForm({
+                          ...siteForm,
+                          creator: {
+                            ...(siteForm.creator || defaultCreatorProfile),
+                            linkedinUrl: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="https://linkedin.com/in/..."
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                      Instagram Profile URL
+                    </label>
+                    <input
+                      type="text"
+                      value={siteForm.creator?.instagramUrl || ""}
+                      onChange={(e) =>
+                        setSiteForm({
+                          ...siteForm,
+                          creator: {
+                            ...(siteForm.creator || defaultCreatorProfile),
+                            instagramUrl: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="https://instagram.com/..."
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                      YouTube Channel URL
+                    </label>
+                    <input
+                      type="text"
+                      value={siteForm.creator?.youtubeUrl || ""}
+                      onChange={(e) =>
+                        setSiteForm({
+                          ...siteForm,
+                          creator: {
+                            ...(siteForm.creator || defaultCreatorProfile),
+                            youtubeUrl: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="https://youtube.com/@..."
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                      Twitter / X Profile URL
+                    </label>
+                    <input
+                      type="text"
+                      value={siteForm.creator?.twitterUrl || ""}
+                      onChange={(e) =>
+                        setSiteForm({
+                          ...siteForm,
+                          creator: {
+                            ...(siteForm.creator || defaultCreatorProfile),
+                            twitterUrl: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="https://twitter.com/..."
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                      Website / Portfolio URL
+                    </label>
+                    <input
+                      type="text"
+                      value={siteForm.creator?.websiteUrl || ""}
+                      onChange={(e) =>
+                        setSiteForm({
+                          ...siteForm,
+                          creator: {
+                            ...(siteForm.creator || defaultCreatorProfile),
+                            websiteUrl: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="https://..."
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                      Email / Contact URL
+                    </label>
+                    <input
+                      type="text"
+                      value={siteForm.creator?.emailUrl || ""}
+                      onChange={(e) =>
+                        setSiteForm({
+                          ...siteForm,
+                          creator: {
+                            ...(siteForm.creator || defaultCreatorProfile),
+                            emailUrl: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="mailto:..."
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </form>
         </div>

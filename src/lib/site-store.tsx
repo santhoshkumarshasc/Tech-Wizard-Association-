@@ -12,6 +12,38 @@ import {
   Member,
 } from "./site-data";
 
+export interface CreatorSocialLink {
+  id?: string;
+  platform:
+    | "github"
+    | "linkedin"
+    | "instagram"
+    | "youtube"
+    | "twitter"
+    | "website"
+    | "whatsapp"
+    | "email"
+    | string;
+  label: string;
+  url: string;
+}
+
+export interface CreatorProfile {
+  name: string;
+  role: string;
+  bio: string;
+  avatarUrl?: string;
+  likesCount: number;
+  githubUrl?: string;
+  linkedinUrl?: string;
+  instagramUrl?: string;
+  youtubeUrl?: string;
+  twitterUrl?: string;
+  websiteUrl?: string;
+  emailUrl?: string;
+  customSocials?: CreatorSocialLink[];
+}
+
 export interface SiteInfo {
   name: string;
   short: string;
@@ -27,6 +59,7 @@ export interface SiteInfo {
   logoShape?: "rounded" | "circle" | "square" | "pill";
   logoPadding?: number; // 0 to 24 (px)
   logoBg?: string; // e.g. "transparent", "#ffffff", "#000000"
+  creator?: CreatorProfile;
 }
 
 export interface EventPhoto {
@@ -446,6 +479,7 @@ interface SiteStoreContextType {
   logoutAdmin: () => void;
   setSecretToken: (token: string) => void;
   updateSiteInfo: (info: Partial<SiteInfo>) => void;
+  incrementCreatorLikes: () => void;
   updateStats: (newStats: StatItem[]) => void;
   updateDepartmentInfo: (info: Partial<DepartmentInfo>) => void;
   updateAnnouncement: (info: Partial<AnnouncementInfo>) => void;
@@ -560,6 +594,22 @@ const initialStats: StatItem[] = [
   { label: "Tech Wings", value: "5 Wings" },
 ];
 
+export const defaultCreatorProfile: CreatorProfile = {
+  name: "Santhosh Kumar S",
+  role: "Lead Platform Creator & Full-Stack Architect",
+  bio: "Creator & Architect behind the Tech Wizard Association platform. Building modern digital experiences for student tech communities.",
+  avatarUrl:
+    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+  likesCount: 142,
+  githubUrl: "https://github.com/santhoshkumarshasc",
+  linkedinUrl: "https://linkedin.com/in/santhoshkumar",
+  instagramUrl: "https://instagram.com/techwizards_shasc",
+  youtubeUrl: "https://youtube.com/@techwizards_shasc",
+  twitterUrl: "https://twitter.com/techwizards_tw",
+  websiteUrl: "https://techwizards-shasc.web.app",
+  emailUrl: "mailto:techwizardsassociation@gmail.com",
+};
+
 const initialSiteInfo: SiteInfo = {
   ...defaultSite,
   email: "techwizards@shasc.edu.in",
@@ -567,6 +617,7 @@ const initialSiteInfo: SiteInfo = {
   address:
     "Department of Computer Applications, Syed Hameedha Arts & Science College, Kilakarai, Tamil Nadu - 623517",
   logoUrl: twaLogoSvg || defaultLogoAsset.url || "/favicon.ico",
+  creator: defaultCreatorProfile,
 };
 
 const initialMessages: ContactMessage[] = [];
@@ -1272,6 +1323,20 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const incrementCreatorLikes = () => {
+    setSite((prev) => {
+      const currentCreator = prev.creator || defaultCreatorProfile;
+      const newLikes = (currentCreator.likesCount || 0) + 1;
+      const updatedCreator = { ...currentCreator, likesCount: newLikes };
+      const updatedSite = { ...prev, creator: updatedCreator };
+      saveAll({ site: updatedSite });
+      setDoc(doc(db, "settings", "config"), updatedSite, { merge: true }).catch((err) =>
+        handleFirestoreError(err, OperationType.WRITE, "settings/config"),
+      );
+      return updatedSite;
+    });
+  };
+
   const updateStats = (newStats: StatItem[]) => {
     setStats(newStats);
     saveAll({ stats: newStats });
@@ -1749,6 +1814,7 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
         logoutAdmin,
         setSecretToken,
         updateSiteInfo,
+        incrementCreatorLikes,
         updateStats,
         updateDepartmentInfo,
         updateAnnouncement,
@@ -1811,6 +1877,7 @@ const defaultFallbackStore: SiteStoreContextType = {
   logoutAdmin: () => {},
   setSecretToken: () => {},
   updateSiteInfo: () => {},
+  incrementCreatorLikes: () => {},
   updateStats: () => {},
   updateDepartmentInfo: () => {},
   updateAnnouncement: () => {},

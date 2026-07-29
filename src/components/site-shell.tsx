@@ -1,11 +1,195 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { Menu, X, Shield, Sparkles, ArrowUp } from "lucide-react";
+import {
+  Menu,
+  X,
+  Sparkles,
+  ArrowUp,
+  Heart,
+  Github,
+  Linkedin,
+  Instagram,
+  Youtube,
+  Twitter,
+  Globe,
+  Mail,
+} from "lucide-react";
 import { nav } from "@/lib/site-data";
-import { useSiteStore } from "@/lib/site-store";
+import { useSiteStore, defaultCreatorProfile } from "@/lib/site-store";
 import { cn } from "@/lib/utils";
 import { AnnouncementBar } from "./announcement-bar";
 import { ThemeToggle } from "./theme-toggle";
+
+function CreatorShowcaseFooter() {
+  const { site, incrementCreatorLikes } = useSiteStore();
+  const [hasLiked, setHasLiked] = useState(false);
+  const [likeAnim, setLikeAnim] = useState(false);
+
+  const creator = site.creator || defaultCreatorProfile;
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const likedState = localStorage.getItem("twa_creator_liked");
+      if (likedState === "true") {
+        setHasLiked(true);
+      }
+    }
+  }, []);
+
+  const handleLike = () => {
+    if (!hasLiked) {
+      incrementCreatorLikes();
+      setHasLiked(true);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("twa_creator_liked", "true");
+      }
+    } else {
+      incrementCreatorLikes();
+    }
+    setLikeAnim(true);
+    setTimeout(() => setLikeAnim(false), 800);
+  };
+
+  const socials = [
+    {
+      name: "GitHub",
+      url: creator.githubUrl,
+      icon: Github,
+      color:
+        "hover:bg-slate-800 hover:text-white dark:hover:bg-slate-200 dark:hover:text-slate-900",
+    },
+    {
+      name: "LinkedIn",
+      url: creator.linkedinUrl,
+      icon: Linkedin,
+      color: "hover:bg-blue-600 hover:text-white",
+    },
+    {
+      name: "Instagram",
+      url: creator.instagramUrl,
+      icon: Instagram,
+      color: "hover:bg-pink-600 hover:text-white",
+    },
+    {
+      name: "YouTube",
+      url: creator.youtubeUrl,
+      icon: Youtube,
+      color: "hover:bg-red-600 hover:text-white",
+    },
+    {
+      name: "Twitter",
+      url: creator.twitterUrl,
+      icon: Twitter,
+      color: "hover:bg-sky-500 hover:text-white",
+    },
+    {
+      name: "Portfolio",
+      url: creator.websiteUrl,
+      icon: Globe,
+      color: "hover:bg-emerald-600 hover:text-white",
+    },
+    {
+      name: "Email",
+      url: creator.emailUrl,
+      icon: Mail,
+      color: "hover:bg-purple-600 hover:text-white",
+    },
+  ].filter((s) => Boolean(s.url));
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-primary/20 bg-card/60 p-4 shadow-sm backdrop-blur-sm hover:border-primary/40 transition-all duration-300">
+      <div className="flex items-center justify-between border-b border-border/50 pb-2.5">
+        <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
+          <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
+          <span>Creator Showcase</span>
+        </div>
+        <button
+          onClick={handleLike}
+          type="button"
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-all duration-300 shadow-xs cursor-pointer",
+            hasLiked
+              ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30"
+              : "bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 hover:scale-105 active:scale-95",
+            likeAnim && "scale-125 ring-2 ring-rose-500/50",
+          )}
+          title={hasLiked ? "Click to add another appreciation!" : "Click to send likes to creator"}
+        >
+          <Heart
+            className={cn(
+              "h-3.5 w-3.5 transition-all",
+              hasLiked ? "fill-rose-500 text-rose-500" : "text-primary",
+            )}
+          />
+          <span>{creator.likesCount || 0} Likes</span>
+        </button>
+      </div>
+
+      <div className="flex items-start gap-3">
+        <div className="relative shrink-0">
+          <img
+            src={
+              creator.avatarUrl ||
+              "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"
+            }
+            alt={creator.name}
+            className="h-11 w-11 rounded-full object-cover ring-2 ring-primary/40 shadow-xs"
+          />
+          <span
+            className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-emerald-500 ring-2 ring-card"
+            title="Creator Active"
+          />
+        </div>
+
+        <div className="space-y-0.5 min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <h4 className="font-display text-sm font-bold text-foreground truncate">
+              {creator.name}
+            </h4>
+            <span className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold text-amber-700 dark:text-amber-400 border border-amber-500/20 shrink-0">
+              Lead Architect
+            </span>
+          </div>
+          <p className="text-[11px] font-semibold text-primary/90 truncate">{creator.role}</p>
+          <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed mt-1">
+            {creator.bio}
+          </p>
+        </div>
+      </div>
+
+      <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+          {socials.slice(0, 4).map((s) => {
+            const Icon = s.icon;
+            return (
+              <a
+                key={s.name}
+                href={s.url}
+                target="_blank"
+                rel="noreferrer"
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-lg border border-border/70 bg-background/80 px-2 py-1 text-[11px] font-medium text-foreground transition-all duration-200 hover:shadow-xs",
+                  s.color,
+                )}
+                title={`Visit ${creator.name} on ${s.name}`}
+              >
+                <Icon className="h-3 w-3" />
+                <span>{s.name}</span>
+              </a>
+            );
+          })}
+        </div>
+        <Link
+          to="/creator"
+          className="inline-flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1 text-[11px] font-bold text-primary-foreground shadow-xs hover:bg-primary/90 transition-all shrink-0"
+        >
+          <span>Full Showcase</span>
+          <ArrowUp className="h-3 w-3 rotate-90" />
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 export function SiteShell() {
   const [open, setOpen] = useState(false);
@@ -191,16 +375,7 @@ export function SiteShell() {
             </p>
           </div>
           <div>
-            <div className="text-sm font-semibold">Explore</div>
-            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              {nav.map((n) => (
-                <li key={n.to}>
-                  <Link to={n.to} className="hover:text-foreground flex items-center gap-1.5">
-                    {n.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <CreatorShowcaseFooter />
           </div>
           <div>
             <div className="text-sm font-semibold">Reach us</div>
