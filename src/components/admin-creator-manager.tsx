@@ -22,12 +22,15 @@ import {
   Eye,
   Save,
   ShieldAlert,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import {
   useSiteStore,
   CreatorProfile,
   CreatorSocialLink,
   defaultCreatorProfile,
+  getCreatorsList,
 } from "@/lib/site-store";
 import { Link } from "@tanstack/react-router";
 
@@ -41,9 +44,14 @@ export function AdminCreatorManager({
   showToast: (msg: string) => void;
 }) {
   const store = useSiteStore();
-  const currentCreator = store.site.creator || defaultCreatorProfile;
+  const creatorsList = getCreatorsList(store.site);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // Local Form State for editing
+  const safeIndex =
+    selectedIndex >= creatorsList.length ? Math.max(0, creatorsList.length - 1) : selectedIndex;
+  const currentCreator = creatorsList[safeIndex] || defaultCreatorProfile;
+
+  // Local Form State for editing selected creator
   const [formData, setFormData] = useState<CreatorProfile>({
     name: currentCreator.name || "",
     role: currentCreator.role || "",
@@ -61,7 +69,7 @@ export function AdminCreatorManager({
     customSocials: currentCreator.customSocials || [],
   });
 
-  // Keep local state in sync when store updates
+  // Keep local state in sync when selected creator changes
   useEffect(() => {
     if (currentCreator) {
       setFormData({
@@ -81,7 +89,7 @@ export function AdminCreatorManager({
         customSocials: currentCreator.customSocials || [],
       });
     }
-  }, [currentCreator]);
+  }, [safeIndex, currentCreator]);
 
   // Modal / Add Custom Link state
   const [showAddCustomLink, setShowAddCustomLink] = useState(false);
@@ -111,7 +119,7 @@ export function AdminCreatorManager({
     }
   };
 
-  // Submit / Update Creator Profile
+  // Submit / Update Selected Creator Profile
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isPanelLocked) {
@@ -124,8 +132,75 @@ export function AdminCreatorManager({
       return;
     }
 
-    store.updateCreatorProfile(formData);
-    showToast("✨ Creator Showcase Profile updated and published live!");
+    store.updateCreatorProfileAtIndex(safeIndex, formData);
+    showToast(`✨ Creator profile (${formData.name}) updated and published live!`);
+  };
+
+  // Add New Creator Profile
+  const handleAddNewCreator = () => {
+    if (isPanelLocked) {
+      onUnlockClick();
+      return;
+    }
+    const newProfile: CreatorProfile = {
+      name: `New Creator ${creatorsList.length + 1}`,
+      role: "Platform Creator / Developer",
+      bio: "Contributor & Architect for Tech Wizard Association.",
+      longBio: "",
+      avatarUrl:
+        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+      likesCount: 0,
+      githubUrl: "",
+      linkedinUrl: "",
+      instagramUrl: "",
+      youtubeUrl: "",
+      twitterUrl: "",
+      websiteUrl: "",
+      emailUrl: "",
+      customSocials: [],
+    };
+    store.addCreatorProfile(newProfile);
+    setSelectedIndex(creatorsList.length);
+    showToast("✨ Added new Creator Profile!");
+  };
+
+  // Delete Creator Profile
+  const handleDeleteCreator = (idxToDelete: number) => {
+    if (isPanelLocked) {
+      onUnlockClick();
+      return;
+    }
+    if (creatorsList.length <= 1) {
+      showToast("⚠️ At least one creator profile is required.");
+      return;
+    }
+    const name = creatorsList[idxToDelete]?.name || "Creator";
+    store.deleteCreatorProfileAtIndex(idxToDelete);
+    if (safeIndex >= idxToDelete && safeIndex > 0) {
+      setSelectedIndex(safeIndex - 1);
+    }
+    showToast(`🗑️ Removed ${name} from creators.`);
+  };
+
+  // Reorder Creators
+  const handleMoveCreator = (idx: number, direction: "up" | "down") => {
+    if (isPanelLocked) {
+      onUnlockClick();
+      return;
+    }
+    const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= creatorsList.length) return;
+
+    const updated = [...creatorsList];
+    const temp = updated[idx];
+    updated[idx] = updated[targetIdx];
+    updated[targetIdx] = temp;
+
+    store.reorderCreators(updated);
+    if (safeIndex === idx) setSelectedIndex(targetIdx);
+    else if (safeIndex === targetIdx) setSelectedIndex(idx);
+
+    showToast("↕️ Reordered creator profiles.");
   };
 
   // Add Custom Social Link
@@ -211,6 +286,103 @@ export function AdminCreatorManager({
             <RotateCcw className="h-3.5 w-3.5" />
             Reset Defaults
           </button>
+        </div>
+      </div>
+
+      {/* MULTIPLE CREATORS SELECTION & MANAGEMENT BAR */}
+      <div className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+          <div>
+            <h3 className="font-display font-bold text-base flex items-center gap-2 text-foreground">
+              <User className="h-4.5 w-4.5 text-primary" />
+              Platform Creators ({creatorsList.length})
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {
+                "Add multiple creators, reorder profiles, or click a creator below to edit their profile details."
+              }
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleAddNewCreator}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-smooth shadow-sm self-start sm:self-auto cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+            Add New Creator
+          </button>
+        </div>
+
+        {/* Creator Cards Selection Grid */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {creatorsList.map((c, idx) => {
+            const isSelected = idx === safeIndex;
+            return (
+              <div
+                key={idx}
+                onClick={() => setSelectedIndex(idx)}
+                className={`group relative flex items-center justify-between gap-3 rounded-2xl border p-3.5 transition-all cursor-pointer ${
+                  isSelected
+                    ? "border-primary bg-primary/10 shadow-md ring-2 ring-primary/20"
+                    : "border-border bg-background hover:bg-accent/50"
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <img
+                    src={
+                      c.avatarUrl ||
+                      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"
+                    }
+                    alt={c.name}
+                    className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-border"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-foreground truncate">{c.name}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{c.role}</p>
+                  </div>
+                </div>
+
+                <div
+                  className="flex items-center gap-1 shrink-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Reorder Controls */}
+                  <div className="flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5">
+                    <button
+                      type="button"
+                      disabled={idx === 0}
+                      onClick={() => handleMoveCreator(idx, "up")}
+                      className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-25 rounded hover:bg-accent transition-smooth"
+                      title="Move Up"
+                    >
+                      <ArrowUp className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={idx === creatorsList.length - 1}
+                      onClick={() => handleMoveCreator(idx, "down")}
+                      className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-25 rounded hover:bg-accent transition-smooth"
+                      title="Move Down"
+                    >
+                      <ArrowDown className="h-3 w-3" />
+                    </button>
+                  </div>
+
+                  {creatorsList.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCreator(idx)}
+                      className="p-1 text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 rounded transition-smooth ml-1"
+                      title={`Delete ${c.name}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 

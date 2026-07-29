@@ -61,6 +61,7 @@ export interface SiteInfo {
   logoPadding?: number; // 0 to 24 (px)
   logoBg?: string; // e.g. "transparent", "#ffffff", "#000000"
   creator?: CreatorProfile;
+  creators?: CreatorProfile[];
 }
 
 export interface EventPhoto {
@@ -480,9 +481,14 @@ interface SiteStoreContextType {
   logoutAdmin: () => void;
   setSecretToken: (token: string) => void;
   updateSiteInfo: (info: Partial<SiteInfo>) => void;
+  addCreatorProfile: (profile: CreatorProfile) => void;
   updateCreatorProfile: (profile: Partial<CreatorProfile>) => void;
+  updateCreatorProfileAtIndex: (index: number, profile: Partial<CreatorProfile>) => void;
+  deleteCreatorProfileAtIndex: (index: number) => void;
+  reorderCreators: (newCreators: CreatorProfile[]) => void;
   resetCreatorProfile: () => void;
   incrementCreatorLikes: () => void;
+  incrementCreatorLikesAtIndex: (index: number) => void;
   updateStats: (newStats: StatItem[]) => void;
   updateDepartmentInfo: (info: Partial<DepartmentInfo>) => void;
   updateAnnouncement: (info: Partial<AnnouncementInfo>) => void;
@@ -617,6 +623,17 @@ export const defaultCreatorProfile: CreatorProfile = {
   emailUrl: "mailto:techwizardsassociation@gmail.com",
 };
 
+export function getCreatorsList(site?: SiteInfo | null): CreatorProfile[] {
+  if (!site) return [defaultCreatorProfile];
+  if (site.creators && site.creators.length > 0) {
+    return site.creators;
+  }
+  if (site.creator) {
+    return [site.creator];
+  }
+  return [defaultCreatorProfile];
+}
+
 const initialSiteInfo: SiteInfo = {
   ...defaultSite,
   email: "techwizards@shasc.edu.in",
@@ -625,6 +642,7 @@ const initialSiteInfo: SiteInfo = {
     "Department of Computer Applications, Syed Hameedha Arts & Science College, Kilakarai, Tamil Nadu - 623517",
   logoUrl: twaLogoSvg || defaultLogoAsset.url || "/favicon.ico",
   creator: defaultCreatorProfile,
+  creators: [defaultCreatorProfile],
 };
 
 const initialMessages: ContactMessage[] = [];
@@ -1330,11 +1348,55 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const updateCreatorProfile = (profile: Partial<CreatorProfile>) => {
+  const addCreatorProfile = (profile: CreatorProfile) => {
     setSite((prev) => {
-      const currentCreator = prev.creator || defaultCreatorProfile;
-      const updatedCreator = { ...currentCreator, ...profile };
-      const updatedSite = { ...prev, creator: updatedCreator };
+      const currentList = getCreatorsList(prev);
+      const updatedList = [...currentList, profile];
+      const updatedSite = { ...prev, creator: updatedList[0], creators: updatedList };
+      saveAll({ site: updatedSite });
+      setDoc(doc(db, "settings", "config"), updatedSite, { merge: true }).catch((err) =>
+        handleFirestoreError(err, OperationType.WRITE, "settings/config"),
+      );
+      return updatedSite;
+    });
+  };
+
+  const updateCreatorProfileAtIndex = (index: number, profile: Partial<CreatorProfile>) => {
+    setSite((prev) => {
+      const currentList = [...getCreatorsList(prev)];
+      if (index >= 0 && index < currentList.length) {
+        currentList[index] = { ...currentList[index], ...profile };
+      }
+      const updatedSite = { ...prev, creator: currentList[0], creators: currentList };
+      saveAll({ site: updatedSite });
+      setDoc(doc(db, "settings", "config"), updatedSite, { merge: true }).catch((err) =>
+        handleFirestoreError(err, OperationType.WRITE, "settings/config"),
+      );
+      return updatedSite;
+    });
+  };
+
+  const updateCreatorProfile = (profile: Partial<CreatorProfile>) => {
+    updateCreatorProfileAtIndex(0, profile);
+  };
+
+  const deleteCreatorProfileAtIndex = (index: number) => {
+    setSite((prev) => {
+      const currentList = getCreatorsList(prev).filter((_, i) => i !== index);
+      const newList = currentList.length > 0 ? currentList : [defaultCreatorProfile];
+      const updatedSite = { ...prev, creator: newList[0], creators: newList };
+      saveAll({ site: updatedSite });
+      setDoc(doc(db, "settings", "config"), updatedSite, { merge: true }).catch((err) =>
+        handleFirestoreError(err, OperationType.WRITE, "settings/config"),
+      );
+      return updatedSite;
+    });
+  };
+
+  const reorderCreators = (newCreators: CreatorProfile[]) => {
+    setSite((prev) => {
+      const newList = newCreators.length > 0 ? newCreators : [defaultCreatorProfile];
+      const updatedSite = { ...prev, creator: newList[0], creators: newList };
       saveAll({ site: updatedSite });
       setDoc(doc(db, "settings", "config"), updatedSite, { merge: true }).catch((err) =>
         handleFirestoreError(err, OperationType.WRITE, "settings/config"),
@@ -1345,7 +1407,28 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
 
   const resetCreatorProfile = () => {
     setSite((prev) => {
-      const updatedSite = { ...prev, creator: defaultCreatorProfile };
+      const updatedSite = {
+        ...prev,
+        creator: defaultCreatorProfile,
+        creators: [defaultCreatorProfile],
+      };
+      saveAll({ site: updatedSite });
+      setDoc(doc(db, "settings", "config"), updatedSite, { merge: true }).catch((err) =>
+        handleFirestoreError(err, OperationType.WRITE, "settings/config"),
+      );
+      return updatedSite;
+    });
+  };
+
+  const incrementCreatorLikesAtIndex = (index: number) => {
+    setSite((prev) => {
+      const currentList = [...getCreatorsList(prev)];
+      const target = currentList[index] || currentList[0];
+      if (target) {
+        const newLikes = (target.likesCount || 0) + 1;
+        currentList[index] = { ...target, likesCount: newLikes };
+      }
+      const updatedSite = { ...prev, creator: currentList[0], creators: currentList };
       saveAll({ site: updatedSite });
       setDoc(doc(db, "settings", "config"), updatedSite, { merge: true }).catch((err) =>
         handleFirestoreError(err, OperationType.WRITE, "settings/config"),
@@ -1355,17 +1438,7 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const incrementCreatorLikes = () => {
-    setSite((prev) => {
-      const currentCreator = prev.creator || defaultCreatorProfile;
-      const newLikes = (currentCreator.likesCount || 0) + 1;
-      const updatedCreator = { ...currentCreator, likesCount: newLikes };
-      const updatedSite = { ...prev, creator: updatedCreator };
-      saveAll({ site: updatedSite });
-      setDoc(doc(db, "settings", "config"), updatedSite, { merge: true }).catch((err) =>
-        handleFirestoreError(err, OperationType.WRITE, "settings/config"),
-      );
-      return updatedSite;
-    });
+    incrementCreatorLikesAtIndex(0);
   };
 
   const updateStats = (newStats: StatItem[]) => {
@@ -1872,9 +1945,14 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
         logoutAdmin,
         setSecretToken,
         updateSiteInfo,
+        addCreatorProfile,
         updateCreatorProfile,
+        updateCreatorProfileAtIndex,
+        deleteCreatorProfileAtIndex,
+        reorderCreators,
         resetCreatorProfile,
         incrementCreatorLikes,
+        incrementCreatorLikesAtIndex,
         updateStats,
         updateDepartmentInfo,
         updateAnnouncement,
@@ -1939,7 +2017,14 @@ const defaultFallbackStore: SiteStoreContextType = {
   logoutAdmin: () => {},
   setSecretToken: () => {},
   updateSiteInfo: () => {},
+  addCreatorProfile: () => {},
+  updateCreatorProfile: () => {},
+  updateCreatorProfileAtIndex: () => {},
+  deleteCreatorProfileAtIndex: () => {},
+  reorderCreators: () => {},
+  resetCreatorProfile: () => {},
   incrementCreatorLikes: () => {},
+  incrementCreatorLikesAtIndex: () => {},
   updateStats: () => {},
   updateDepartmentInfo: () => {},
   updateAnnouncement: () => {},
