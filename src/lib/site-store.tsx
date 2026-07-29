@@ -1871,7 +1871,7 @@ const defaultFallbackStore: SiteStoreContextType = {
   adminUsers: initialUsers,
   currentUser: initialUsers[0],
   adminPin: "admin2026",
-  secretToken: "twa2026",
+  secretToken: "admin2026",
   isAuthenticated: false,
   cloudSyncStatus: "connected",
   lastSyncedAt: null,

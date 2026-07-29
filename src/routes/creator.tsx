@@ -295,40 +295,6 @@ function CreatorPage() {
           </div>
         </div>
 
-        {/* Platform Architecture & Engineering Stack */}
-        <div className="space-y-6 rounded-3xl border border-border bg-card p-8 shadow-sm">
-          <div>
-            <h2 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
-              <Cpu className="h-6 w-6 text-primary" />
-              <span>Platform Engineering & Architecture</span>
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Built with cutting-edge web technologies, reactive state synchronization, and
-              high-performance design
-            </p>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {techStack.map((tech) => {
-              const Icon = tech.icon;
-              return (
-                <div
-                  key={tech.name}
-                  className="flex items-start gap-3 rounded-xl border border-border/60 bg-surface/50 p-4 transition-colors hover:border-primary/30"
-                >
-                  <div className="rounded-lg bg-primary/10 p-2 text-primary shrink-0">
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-foreground text-sm">{tech.name}</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">{tech.desc}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Call to Action Footer Box */}
         <div className="rounded-2xl bg-gradient-primary p-8 text-primary-foreground shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="space-y-1 text-center sm:text-left">
