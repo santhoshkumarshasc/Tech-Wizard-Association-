@@ -480,6 +480,8 @@ interface SiteStoreContextType {
   logoutAdmin: () => void;
   setSecretToken: (token: string) => void;
   updateSiteInfo: (info: Partial<SiteInfo>) => void;
+  updateCreatorProfile: (profile: Partial<CreatorProfile>) => void;
+  resetCreatorProfile: () => void;
   incrementCreatorLikes: () => void;
   updateStats: (newStats: StatItem[]) => void;
   updateDepartmentInfo: (info: Partial<DepartmentInfo>) => void;
@@ -1326,6 +1328,30 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const updateCreatorProfile = (profile: Partial<CreatorProfile>) => {
+    setSite((prev) => {
+      const currentCreator = prev.creator || defaultCreatorProfile;
+      const updatedCreator = { ...currentCreator, ...profile };
+      const updatedSite = { ...prev, creator: updatedCreator };
+      saveAll({ site: updatedSite });
+      setDoc(doc(db, "settings", "config"), updatedSite, { merge: true }).catch((err) =>
+        handleFirestoreError(err, OperationType.WRITE, "settings/config"),
+      );
+      return updatedSite;
+    });
+  };
+
+  const resetCreatorProfile = () => {
+    setSite((prev) => {
+      const updatedSite = { ...prev, creator: defaultCreatorProfile };
+      saveAll({ site: updatedSite });
+      setDoc(doc(db, "settings", "config"), updatedSite, { merge: true }).catch((err) =>
+        handleFirestoreError(err, OperationType.WRITE, "settings/config"),
+      );
+      return updatedSite;
+    });
+  };
+
   const incrementCreatorLikes = () => {
     setSite((prev) => {
       const currentCreator = prev.creator || defaultCreatorProfile;
@@ -1817,6 +1843,8 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
         logoutAdmin,
         setSecretToken,
         updateSiteInfo,
+        updateCreatorProfile,
+        resetCreatorProfile,
         incrementCreatorLikes,
         updateStats,
         updateDepartmentInfo,

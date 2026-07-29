@@ -50,6 +50,7 @@ import {
   getWhatsAppUrl,
 } from "@/lib/site-store";
 import { AdminDashboard } from "@/components/admin-dashboard";
+import { AdminCreatorManager } from "@/components/admin-creator-manager";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -73,6 +74,7 @@ function AdminPage() {
   const [activeTab, setActiveTab] = useState<
     | "overview"
     | "branding"
+    | "creator"
     | "stats"
     | "announcement"
     | "department"
@@ -925,6 +927,17 @@ function AdminPage() {
         </button>
 
         <button
+          onClick={() => setActiveTab("creator")}
+          className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-smooth ${
+            activeTab === "creator"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:bg-accent hover:text-foreground"
+          }`}
+        >
+          <Sparkles className="h-4 w-4 text-amber-500" /> Creator Page
+        </button>
+
+        <button
           onClick={() => {
             setActiveTab("stats");
             setEditingStats(store.stats);
@@ -1075,6 +1088,17 @@ function AdminPage() {
       {activeTab === "overview" && (
         <div className="mt-6">
           <AdminDashboard
+            isPanelLocked={isPanelLocked}
+            onUnlockClick={() => setShowUnlockModal(true)}
+            showToast={showToast}
+          />
+        </div>
+      )}
+
+      {/* TAB CONTENT: CREATOR PAGE MANAGER */}
+      {activeTab === "creator" && (
+        <div className="mt-6">
+          <AdminCreatorManager
             isPanelLocked={isPanelLocked}
             onUnlockClick={() => setShowUnlockModal(true)}
             showToast={showToast}
