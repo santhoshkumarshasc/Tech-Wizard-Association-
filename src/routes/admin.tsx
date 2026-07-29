@@ -38,6 +38,9 @@ import {
   Send,
   Phone,
   FileText,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from "lucide-react";
 import {
   useSiteStore,
@@ -2562,18 +2565,56 @@ function AdminPage() {
                           </div>
                         )}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const updatedFaculty = (deptForm.faculty || []).filter(
-                            (_, i) => i !== idx,
-                          );
-                          setDeptForm({ ...deptForm, faculty: updatedFaculty });
-                        }}
-                        className="rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-500 hover:border-rose-500/30 transition-smooth shrink-0"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {/* Move Up / Move Down Controls */}
+                        <div className="flex items-center gap-0.5 rounded-lg border border-border bg-background p-0.5">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => {
+                              if (idx === 0) return;
+                              const updated = [...(deptForm.faculty || [])];
+                              const temp = updated[idx];
+                              updated[idx] = updated[idx - 1];
+                              updated[idx - 1] = temp;
+                              setDeptForm({ ...deptForm, faculty: updated });
+                            }}
+                            className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:hover:text-muted-foreground rounded hover:bg-accent transition-smooth"
+                            title="Move Up"
+                          >
+                            <ArrowUp className="h-3 w-3" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === (deptForm.faculty || []).length - 1}
+                            onClick={() => {
+                              if (idx === (deptForm.faculty || []).length - 1) return;
+                              const updated = [...(deptForm.faculty || [])];
+                              const temp = updated[idx];
+                              updated[idx] = updated[idx + 1];
+                              updated[idx + 1] = temp;
+                              setDeptForm({ ...deptForm, faculty: updated });
+                            }}
+                            className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:hover:text-muted-foreground rounded hover:bg-accent transition-smooth"
+                            title="Move Down"
+                          >
+                            <ArrowDown className="h-3 w-3" />
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updatedFaculty = (deptForm.faculty || []).filter(
+                              (_, i) => i !== idx,
+                            );
+                            setDeptForm({ ...deptForm, faculty: updatedFaculty });
+                          }}
+                          className="rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-500 hover:border-rose-500/30 transition-smooth shrink-0"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -3809,7 +3850,7 @@ function AdminPage() {
 
           {/* Office Bearers Grid */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {store.office.map((m) => {
+            {store.office.map((m, idx) => {
               const isEditing = editingOfficeId === m.id;
               return (
                 <div
@@ -3870,6 +3911,44 @@ function AdminPage() {
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0">
+                      {/* Rearrange / Order Buttons */}
+                      <div className="flex items-center gap-0.5 rounded-lg border border-border bg-background p-0.5">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          onClick={() => {
+                            if (idx === 0) return;
+                            const updated = [...store.office];
+                            const temp = updated[idx];
+                            updated[idx] = updated[idx - 1];
+                            updated[idx - 1] = temp;
+                            store.reorderOfficeMembers(updated);
+                            showToast(`Moved ${m.name} up in order.`);
+                          }}
+                          className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:hover:text-muted-foreground rounded hover:bg-accent transition-smooth"
+                          title="Move Up"
+                        >
+                          <ArrowUp className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={idx === store.office.length - 1}
+                          onClick={() => {
+                            if (idx === store.office.length - 1) return;
+                            const updated = [...store.office];
+                            const temp = updated[idx];
+                            updated[idx] = updated[idx + 1];
+                            updated[idx + 1] = temp;
+                            store.reorderOfficeMembers(updated);
+                            showToast(`Moved ${m.name} down in order.`);
+                          }}
+                          className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:hover:text-muted-foreground rounded hover:bg-accent transition-smooth"
+                          title="Move Down"
+                        >
+                          <ArrowDown className="h-3 w-3" />
+                        </button>
+                      </div>
+
                       <button
                         onClick={() => {
                           if (isEditing) {
@@ -4506,40 +4585,80 @@ function AdminPage() {
                       </div>
                     </div>
 
-                    {deleteConfirmId === `team-${selectedTeam.slug}-${idx}` ? (
-                      <div className="flex items-center gap-1 animate-in fade-in duration-150">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {/* Move Up / Move Down Buttons */}
+                      <div className="flex items-center gap-0.5 rounded-lg border border-border bg-background p-0.5">
                         <button
+                          type="button"
+                          disabled={idx === 0}
                           onClick={() => {
-                            store.deleteTeamMember(selectedTeam.slug, idx);
-                            setDeleteConfirmId(null);
-                            showToast(`Removed ${m.name} from ${selectedTeam.name}.`);
+                            if (idx === 0) return;
+                            const updated = [...selectedTeam.members];
+                            const temp = updated[idx];
+                            updated[idx] = updated[idx - 1];
+                            updated[idx - 1] = temp;
+                            store.reorderTeamMembers(selectedTeam.slug, updated);
+                            showToast(`Moved ${m.name} up`);
                           }}
-                          className="rounded-lg bg-rose-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-rose-700 shadow-sm transition-smooth"
+                          className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:hover:text-muted-foreground rounded hover:bg-accent transition-smooth"
+                          title="Move Up"
                         >
-                          Confirm
+                          <ArrowUp className="h-3 w-3" />
                         </button>
                         <button
-                          onClick={() => setDeleteConfirmId(null)}
-                          className="rounded-lg border border-border p-0.5 text-[11px] hover:bg-accent transition-smooth"
+                          type="button"
+                          disabled={idx === selectedTeam.members.length - 1}
+                          onClick={() => {
+                            if (idx === selectedTeam.members.length - 1) return;
+                            const updated = [...selectedTeam.members];
+                            const temp = updated[idx];
+                            updated[idx] = updated[idx + 1];
+                            updated[idx + 1] = temp;
+                            store.reorderTeamMembers(selectedTeam.slug, updated);
+                            showToast(`Moved ${m.name} down`);
+                          }}
+                          className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:hover:text-muted-foreground rounded hover:bg-accent transition-smooth"
+                          title="Move Down"
                         >
-                          <X className="h-3 w-3" />
+                          <ArrowDown className="h-3 w-3" />
                         </button>
                       </div>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          if (isPanelLocked) {
-                            setShowUnlockModal(true);
-                          } else {
-                            setDeleteConfirmId(`team-${selectedTeam.slug}-${idx}`);
-                          }
-                        }}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 p-1.5 rounded-lg transition-smooth"
-                        title={`Remove ${m.name}`}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
+
+                      {deleteConfirmId === `team-${selectedTeam.slug}-${idx}` ? (
+                        <div className="flex items-center gap-1 animate-in fade-in duration-150">
+                          <button
+                            onClick={() => {
+                              store.deleteTeamMember(selectedTeam.slug, idx);
+                              setDeleteConfirmId(null);
+                              showToast(`Removed ${m.name} from ${selectedTeam.name}.`);
+                            }}
+                            className="rounded-lg bg-rose-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-rose-700 shadow-sm transition-smooth"
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirmId(null)}
+                            className="rounded-lg border border-border p-0.5 text-[11px] hover:bg-accent transition-smooth"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            if (isPanelLocked) {
+                              setShowUnlockModal(true);
+                            } else {
+                              setDeleteConfirmId(`team-${selectedTeam.slug}-${idx}`);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 p-1.5 rounded-lg transition-smooth"
+                          title={`Remove ${m.name}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

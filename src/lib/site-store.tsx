@@ -501,8 +501,10 @@ interface SiteStoreContextType {
   addOfficeMember: (member: Omit<OfficeMember, "id">) => void;
   updateOfficeMember: (id: string, member: Partial<OfficeMember>) => void;
   deleteOfficeMember: (id: string) => void;
+  reorderOfficeMembers: (newOffice: OfficeMember[]) => void;
   addTeamMember: (teamSlug: string, member: TeamMemberItem) => void;
   deleteTeamMember: (teamSlug: string, memberIndex: number) => void;
+  reorderTeamMembers: (teamSlug: string, newMembers: TeamMemberItem[]) => void;
   updateTeam: (slug: string, team: Partial<TeamItem>) => void;
   addTeam: (
     team: Omit<TeamItem, "slug" | "members"> & {
@@ -1499,6 +1501,16 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const reorderOfficeMembers = (newOffice: OfficeMember[]) => {
+    setOffice(newOffice);
+    saveAll({ office: newOffice });
+    newOffice.forEach((m, index) => {
+      setDoc(doc(db, "office", m.id), { ...m, orderIndex: index }, { merge: true }).catch((err) =>
+        handleFirestoreError(err, OperationType.WRITE, `office/${m.id}`),
+      );
+    });
+  };
+
   const addTeamMember = (teamSlug: string, member: TeamMemberItem) => {
     setTeams((prev) => {
       const updated = prev.map((t) => {
@@ -1522,6 +1534,23 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
         if (t.slug === teamSlug) {
           const newMembers = [...t.members];
           newMembers.splice(memberIndex, 1);
+          const newT = { ...t, members: newMembers };
+          setDoc(doc(db, "teams", teamSlug), newT, { merge: true }).catch((err) =>
+            handleFirestoreError(err, OperationType.WRITE, `teams/${teamSlug}`),
+          );
+          return newT;
+        }
+        return t;
+      });
+      saveAll({ teams: updated });
+      return updated;
+    });
+  };
+
+  const reorderTeamMembers = (teamSlug: string, newMembers: TeamMemberItem[]) => {
+    setTeams((prev) => {
+      const updated = prev.map((t) => {
+        if (t.slug === teamSlug) {
           const newT = { ...t, members: newMembers };
           setDoc(doc(db, "teams", teamSlug), newT, { merge: true }).catch((err) =>
             handleFirestoreError(err, OperationType.WRITE, `teams/${teamSlug}`),
@@ -1864,8 +1893,10 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
         addOfficeMember,
         updateOfficeMember,
         deleteOfficeMember,
+        reorderOfficeMembers,
         addTeamMember,
         deleteTeamMember,
+        reorderTeamMembers,
         updateTeam,
         addTeam,
         deleteTeam,
@@ -1938,8 +1969,10 @@ const defaultFallbackStore: SiteStoreContextType = {
   addOfficeMember: () => {},
   updateOfficeMember: () => {},
   deleteOfficeMember: () => {},
+  reorderOfficeMembers: () => {},
   addTeamMember: () => {},
   deleteTeamMember: () => {},
+  reorderTeamMembers: () => {},
   updateTeam: () => {},
   addTeam: () => {},
   deleteTeam: () => {},
