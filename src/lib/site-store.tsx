@@ -633,7 +633,7 @@ const defaultData = {
   stats: initialStats,
   messages: initialMessages,
   adminPin: "admin2026",
-  secretToken: "twa2026",
+  secretToken: "admin2026",
 };
 
 const SiteStoreContext = createContext<SiteStoreContextType | null>(null);
@@ -652,7 +652,7 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>(initialUsers);
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(initialUsers[0]);
   const [adminPin, setPinState] = useState<string>("admin2026");
-  const [secretToken, setSecretTokenState] = useState<string>("twa2026");
+  const [secretToken, setSecretTokenState] = useState<string>("admin2026");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [cloudSyncStatus, setCloudSyncStatus] = useState<
     "connected" | "syncing" | "error" | "offline"
@@ -1771,7 +1771,7 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
     setStats(initialStats);
     setMessages([]);
     setPinState("admin2026");
-    setSecretTokenState("twa2026");
+    setSecretTokenState("admin2026");
     try {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem("twa_site_store_v2");
@@ -1788,7 +1788,7 @@ export function SiteStoreProvider({ children }: { children: React.ReactNode }) {
       stats: initialStats,
       messages: [],
       adminPin: "admin2026",
-      secretToken: "twa2026",
+      secretToken: "admin2026",
     });
   };
 
