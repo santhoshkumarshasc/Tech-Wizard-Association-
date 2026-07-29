@@ -173,7 +173,7 @@ export function SiteShell() {
       </main>
 
       <footer className="border-t border-border/60 bg-surface">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-3 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:px-8">
           <div>
             <div className="flex items-center gap-3">
               <img
@@ -186,32 +186,25 @@ export function SiteShell() {
                 <div className="text-xs text-muted-foreground">{site.college}</div>
               </div>
             </div>
-            <p className="mt-4 max-w-xs text-sm text-muted-foreground">
+            <p className="mt-4 max-w-sm text-sm text-muted-foreground leading-relaxed">
               A student-led community of makers, coders and dreamers under the {site.department}.
             </p>
           </div>
-          <div>
-            <div className="text-sm font-semibold">Explore</div>
-            <ul className="mt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-              {nav.map((n) => (
-                <li key={n.to}>
-                  <Link
-                    to={n.to}
-                    className="hover:text-primary transition-colors flex items-center gap-1.5 font-medium"
-                  >
-                    {n.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <div className="text-sm font-semibold">Reach us</div>
+          <div className="lg:justify-self-end">
+            <div className="text-sm font-semibold text-foreground">Reach us</div>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
               <li>{site.college}</li>
               <li>{site.address}</li>
-              <li>{site.email}</li>
-              <li>{site.phone}</li>
+              <li>
+                <a href={`mailto:${site.email}`} className="hover:text-primary transition-colors">
+                  {site.email}
+                </a>
+              </li>
+              <li>
+                <a href={`tel:${site.phone}`} className="hover:text-primary transition-colors">
+                  {site.phone}
+                </a>
+              </li>
             </ul>
           </div>
         </div>

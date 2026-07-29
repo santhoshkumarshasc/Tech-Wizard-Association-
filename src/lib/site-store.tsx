@@ -32,6 +32,7 @@ export interface CreatorProfile {
   name: string;
   role: string;
   bio: string;
+  longBio?: string;
   avatarUrl?: string;
   likesCount: number;
   githubUrl?: string;
@@ -598,9 +599,11 @@ export const defaultCreatorProfile: CreatorProfile = {
   name: "Santhosh Kumar S",
   role: "Lead Platform Creator & Full-Stack Architect",
   bio: "Creator & Architect behind the Tech Wizard Association platform. Building modern digital experiences for student tech communities.",
+  longBio:
+    "Full-Stack Architect responsible for the end-to-end design, database architecture, and reactive web applications for the Tech Wizard Association platform.",
   avatarUrl:
     "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
-  likesCount: 142,
+  likesCount: 0,
   githubUrl: "https://github.com/santhoshkumarshasc",
   linkedinUrl: "https://linkedin.com/in/santhoshkumar",
   instagramUrl: "https://instagram.com/techwizards_shasc",

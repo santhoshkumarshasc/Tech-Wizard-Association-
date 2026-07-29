@@ -271,6 +271,8 @@ function AdminPage() {
   // Local form states
   const [siteForm, setSiteForm] = useState(store.site);
   const [siteSaved, setSiteSaved] = useState(false);
+  const [newCustomSocialLabel, setNewCustomSocialLabel] = useState("");
+  const [newCustomSocialUrl, setNewCustomSocialUrl] = useState("");
 
   // Department Form State
   const [deptForm, setDeptForm] = useState(store.departmentInfo);
@@ -1623,10 +1625,10 @@ function AdminPage() {
                 <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
                   <div className="flex items-center gap-2 text-sm font-bold text-primary">
                     <Sparkles className="h-4 w-4 text-amber-500" />
-                    <span>Footer Creator Showcase Profile</span>
+                    <span>Creator Profile & Social Links Manager</span>
                   </div>
                   <span className="text-xs font-medium text-muted-foreground">
-                    Appears in footer showcase
+                    Controls /creator showcase page
                   </span>
                 </div>
 
@@ -1675,7 +1677,7 @@ function AdminPage() {
 
                   <div className="md:col-span-2">
                     <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
-                      Creator Bio
+                      Creator Short Bio
                     </label>
                     <textarea
                       rows={2}
@@ -1689,6 +1691,27 @@ function AdminPage() {
                           },
                         })
                       }
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                      Creator Extended Bio / Architect Notes
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={siteForm.creator?.longBio || ""}
+                      onChange={(e) =>
+                        setSiteForm({
+                          ...siteForm,
+                          creator: {
+                            ...(siteForm.creator || defaultCreatorProfile),
+                            longBio: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="Extended bio or architecture details..."
                       className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
@@ -1720,7 +1743,7 @@ function AdminPage() {
                     </label>
                     <input
                       type="number"
-                      value={siteForm.creator?.likesCount ?? 142}
+                      value={siteForm.creator?.likesCount ?? 0}
                       onChange={(e) =>
                         setSiteForm({
                           ...siteForm,
@@ -1879,6 +1902,101 @@ function AdminPage() {
                       placeholder="mailto:..."
                       className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
                     />
+                  </div>
+
+                  {/* Custom Social & Connection Links Manager */}
+                  <div className="md:col-span-2 space-y-3 pt-3 border-t border-border/50">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-foreground uppercase">
+                        Custom Social & Connection Links
+                      </label>
+                      <span className="text-[11px] text-muted-foreground">
+                        Add extra handles (WhatsApp, Telegram, Dev.to, Medium, etc.)
+                      </span>
+                    </div>
+
+                    {siteForm.creator?.customSocials &&
+                      siteForm.creator.customSocials.length > 0 && (
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {siteForm.creator.customSocials.map((cs, idx) => (
+                            <div
+                              key={cs.id || idx}
+                              className="flex items-center justify-between gap-2 rounded-xl border border-border bg-background p-2.5 text-xs"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <span className="font-bold text-foreground block truncate">
+                                  {cs.label}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground font-mono block truncate">
+                                  {cs.url}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = (siteForm.creator?.customSocials || []).filter(
+                                    (_, i) => i !== idx,
+                                  );
+                                  setSiteForm({
+                                    ...siteForm,
+                                    creator: {
+                                      ...(siteForm.creator || defaultCreatorProfile),
+                                      customSocials: updated,
+                                    },
+                                  });
+                                }}
+                                className="rounded-lg bg-destructive/10 p-1.5 text-destructive hover:bg-destructive/20 transition-colors"
+                                title="Remove Custom Link"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                    <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+                      <input
+                        type="text"
+                        placeholder="Label (e.g. WhatsApp / Discord / Dev.to)"
+                        value={newCustomSocialLabel}
+                        onChange={(e) => setNewCustomSocialLabel(e.target.value)}
+                        className="w-full sm:w-1/3 rounded-xl border border-border bg-background px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                      <input
+                        type="text"
+                        placeholder="URL (e.g. https://...)"
+                        value={newCustomSocialUrl}
+                        onChange={(e) => setNewCustomSocialUrl(e.target.value)}
+                        className="w-full sm:flex-1 rounded-xl border border-border bg-background px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!newCustomSocialLabel.trim() || !newCustomSocialUrl.trim()) return;
+                          const newLink = {
+                            id: "cs-" + Date.now(),
+                            platform: newCustomSocialLabel.trim().toLowerCase(),
+                            label: newCustomSocialLabel.trim(),
+                            url: newCustomSocialUrl.trim(),
+                          };
+                          const updated = [...(siteForm.creator?.customSocials || []), newLink];
+                          setSiteForm({
+                            ...siteForm,
+                            creator: {
+                              ...(siteForm.creator || defaultCreatorProfile),
+                              customSocials: updated,
+                            },
+                          });
+                          setNewCustomSocialLabel("");
+                          setNewCustomSocialUrl("");
+                        }}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors shrink-0"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        <span>Add Link</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

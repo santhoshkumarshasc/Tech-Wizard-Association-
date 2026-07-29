@@ -215,8 +215,54 @@ function CreatorPage() {
                 {creator.bio}
               </p>
 
+              {creator.longBio && (
+                <p className="text-xs sm:text-sm text-muted-foreground/90 leading-relaxed max-w-2xl pt-1">
+                  {creator.longBio}
+                </p>
+              )}
+
+              {/* Integrated Creator Social & Contact Links */}
+              <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-2">
+                {socialLinks.map((s) => {
+                  const Icon = s.icon;
+                  return (
+                    <a
+                      key={s.name}
+                      href={s.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-xl border border-border bg-card/80 px-3 py-1.5 text-xs font-bold text-foreground transition-all duration-200 shadow-2xs hover:scale-105 hover:shadow-xs",
+                        s.bgClass,
+                      )}
+                      title={`Visit ${creator.name}'s ${s.name} profile (${s.handle})`}
+                    >
+                      <Icon className="h-3.5 w-3.5 text-primary" />
+                      <span>{s.name}</span>
+                      <ExternalLink className="h-3 w-3 opacity-60" />
+                    </a>
+                  );
+                })}
+
+                {/* Custom Social Links */}
+                {creator.customSocials?.map((cs, idx) => (
+                  <a
+                    key={cs.id || idx}
+                    href={cs.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition-all duration-200 shadow-2xs hover:scale-105 hover:bg-primary/20"
+                    title={cs.url}
+                  >
+                    <Globe className="h-3.5 w-3.5" />
+                    <span>{cs.label || cs.platform}</span>
+                    <ExternalLink className="h-3 w-3 opacity-60" />
+                  </a>
+                ))}
+              </div>
+
               {/* Appreciation Likes Counter */}
-              <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-4">
+              <div className="pt-4 border-t border-border/40 flex flex-wrap items-center justify-center md:justify-start gap-4">
                 <button
                   onClick={handleLike}
                   type="button"
@@ -246,104 +292,6 @@ function CreatorPage() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Social Media Connections Grid */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-display text-2xl font-bold text-foreground">
-                Connect & Social Profiles
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Follow and connect across official developer, professional, and social handles
-              </p>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {socialLinks.map((s) => {
-              const Icon = s.icon;
-              return (
-                <div
-                  key={s.name}
-                  className={cn(
-                    "group relative flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-5 shadow-xs transition-all duration-300 hover:shadow-md hover:-translate-y-1",
-                    s.bgClass,
-                  )}
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="rounded-xl bg-primary/10 p-2.5 text-primary group-hover:scale-110 transition-transform">
-                          <Icon className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-foreground text-base">{s.name}</h3>
-                          <p className="text-xs font-mono text-muted-foreground">{s.handle}</p>
-                        </div>
-                      </div>
-                      <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[10px] font-bold text-secondary-foreground border border-border">
-                        {s.badge}
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
-                  </div>
-
-                  <div className="pt-4 mt-2 border-t border-border/50">
-                    <a
-                      href={s.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={cn(
-                        "inline-flex w-full items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-bold transition-all shadow-xs",
-                        s.btnClass,
-                      )}
-                    >
-                      <span>Visit {s.name} Profile</span>
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Custom Social Links if configured */}
-            {creator.customSocials?.map((cs, idx) => (
-              <div
-                key={cs.id || idx}
-                className="group relative flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-5 shadow-xs transition-all duration-300 hover:border-primary/50 hover:-translate-y-1"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
-                      <Globe className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-foreground text-base">
-                        {cs.label || cs.platform}
-                      </h3>
-                      <p className="text-xs font-mono text-muted-foreground truncate max-w-[180px]">
-                        {cs.url}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="pt-4 mt-2 border-t border-border/50">
-                  <a
-                    href={cs.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground py-2 px-3 text-xs font-bold hover:bg-primary/90 transition-all"
-                  >
-                    <span>Open Custom Link</span>
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 
